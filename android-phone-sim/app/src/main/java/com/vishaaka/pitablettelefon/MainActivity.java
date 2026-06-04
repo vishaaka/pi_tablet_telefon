@@ -6,6 +6,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.Handler;
@@ -50,6 +51,7 @@ public class MainActivity extends Activity {
     private String activeAiReply = "";
     private String backendStatus = "";
     private ToneGenerator toneGenerator;
+    private MediaPlayer mediaPlayer;
     private int callSeconds = 0;
     private boolean muted = false;
     private boolean speaker = true;
@@ -103,6 +105,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         stopCallAudio();
+        stopTtsAudio();
         handler.removeCallbacksAndMessages(null);
         super.onDestroy();
     }
@@ -677,9 +680,10 @@ public class MainActivity extends Activity {
         renderInCall();
         backendClient.sendMessage(activeCallId, text, new BackendClient.MessageCallback() {
             @Override
-            public void onResult(String reply, String provider) {
+            public void onResult(String reply, String provider, String audioUrl) {
                 handler.post(() -> {
                     activeAiReply = reply;
+                    playTtsAudio(audioUrl);
                     if (screen == Screen.IN_CALL) {
                         renderInCall();
                     }
@@ -755,6 +759,37 @@ public class MainActivity extends Activity {
         if (toneGenerator != null) {
             toneGenerator.release();
             toneGenerator = null;
+        }
+    }
+
+    private void playTtsAudio(String audioUrl) {
+        if (audioUrl == null || audioUrl.isEmpty()) {
+            return;
+        }
+        stopTtsAudio();
+        try {
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            mediaPlayer.setDataSource(audioUrl);
+            mediaPlayer.setOnPreparedListener(MediaPlayer::start);
+            mediaPlayer.setOnCompletionListener(player -> stopTtsAudio());
+            mediaPlayer.setOnErrorListener((player, what, extra) -> {
+                stopTtsAudio();
+                return true;
+            });
+            mediaPlayer.prepareAsync();
+        } catch (Exception ignored) {
+            stopTtsAudio();
+        }
+    }
+
+    private void stopTtsAudio() {
+        if (mediaPlayer != null) {
+            try {
+                mediaPlayer.release();
+            } catch (Exception ignored) {
+            }
+            mediaPlayer = null;
         }
     }
 

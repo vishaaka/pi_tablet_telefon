@@ -9,6 +9,9 @@ class Contact(BaseModel):
     voice: str
     video_enabled: bool = True
     system_prompt: str | None = None
+    tts_voice: str | None = None
+    tts_rate: int = 0
+    tts_pitch: int = 0
 
 
 class StartCallRequest(BaseModel):
@@ -33,6 +36,8 @@ class MessageResponse(BaseModel):
     voice: str
     video_hint: str | None = None
     provider: str = "local"
+    audio_url: str | None = None
+    audio_provider: str | None = None
 
 
 class EndCallResponse(BaseModel):

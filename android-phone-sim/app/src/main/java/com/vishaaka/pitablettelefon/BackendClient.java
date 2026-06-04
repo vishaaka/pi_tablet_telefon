@@ -28,7 +28,7 @@ final class BackendClient {
     }
 
     interface MessageCallback {
-        void onResult(String reply, String provider);
+        void onResult(String reply, String provider, String audioUrl);
 
         void onError(String message);
     }
@@ -111,7 +111,11 @@ final class BackendClient {
                     String body = post(baseUrl + "/calls/" + callId + "/message", request.toString());
                     JSONObject response = new JSONObject(body);
                     workingBaseUrl = baseUrl;
-                    callback.onResult(response.optString("reply", ""), response.optString("provider", ""));
+                    String audioUrl = response.optString("audio_url", "");
+                    if (!audioUrl.isEmpty() && audioUrl.startsWith("/")) {
+                        audioUrl = baseUrl + audioUrl;
+                    }
+                    callback.onResult(response.optString("reply", ""), response.optString("provider", ""), audioUrl);
                     return;
                 } catch (Exception error) {
                     lastError = error;

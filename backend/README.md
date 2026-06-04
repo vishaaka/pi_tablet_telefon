@@ -50,6 +50,19 @@ export GEMINI_API_KEY=...
 export PI_AI_MODEL=gemini-flash-latest
 ```
 
+## TTS
+
+Hugging Face Space uzerinden Edge TTS baglamak icin:
+
+```bash
+export PI_TTS_ENABLED=true
+export PI_TTS_PROVIDER=hf_space
+export HF_TTS_SPACE=innoai/Edge-TTS-Text-to-Speech
+export HF_TTS_API_NAME=/tts_interface
+```
+
+Kisilerin `tts_voice`, `tts_rate` ve `tts_pitch` alanlari farkli sesleri belirler. Uretilen dosyalar `/audio/...` URL'si ile servis edilir.
+
 ## Hailo Notu
 
 Hailo islemleri Android/Waydroid icinde degil, bu host servis tarafinda yapilacak. Ileride kamera goruntusu veya vision pipeline eklendiginde HailoRT kullanan modul `app/hailo_runtime.py` icinde gelistirilecek.
