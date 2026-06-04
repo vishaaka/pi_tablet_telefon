@@ -145,9 +145,7 @@ curl http://127.0.0.1:8080/contacts
 Servis olarak calistirma:
 
 ```bash
-sudo cp ~/pi_tablet_telefon/device/systemd/pi-tablet-backend.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now pi-tablet-backend
+bash ~/pi_tablet_telefon/device/scripts/install-backend-service.sh ~/pi_tablet_telefon
 systemctl status pi-tablet-backend
 ```
 

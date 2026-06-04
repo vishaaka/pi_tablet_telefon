@@ -23,10 +23,9 @@ Hedef cihaz:
 
 ## Backend Servisi
 
-`systemd/pi-tablet-backend.service` dosyasini Pi uzerinde `/etc/systemd/system/pi-tablet-backend.service` konumuna kopyalayip pathleri cihazdaki repo konumuna gore duzenleyin.
+Servisi mevcut kullanici ve repo konumuna gore otomatik olusturmak icin:
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now pi-tablet-backend
+bash device/scripts/install-backend-service.sh ~/pi_tablet_telefon
 curl http://127.0.0.1:8080/health
 ```
