@@ -3,6 +3,7 @@ package com.vishaaka.pitablettelefon;
 import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
@@ -178,10 +179,8 @@ public class MainActivity extends Activity {
         resetRoot(true);
         addTopActions(false, false);
 
-        Space topSpace = new Space(this);
-        root.addView(topSpace, new LinearLayout.LayoutParams(1, 0, 1));
-
         Contact match = findMatchingContact();
+        addDialSuggestion(match);
         addDialDisplay(match);
 
         addKeypad();
@@ -189,6 +188,49 @@ public class MainActivity extends Activity {
 
         Space bottomSpace = new Space(this);
         root.addView(bottomSpace, new LinearLayout.LayoutParams(1, dp(isCompactDialer() ? 0 : 10)));
+    }
+
+    private void addDialSuggestion(Contact match) {
+        LinearLayout slot = new LinearLayout(this);
+        slot.setOrientation(LinearLayout.VERTICAL);
+        slot.setGravity(isCompactDialer() ? Gravity.BOTTOM : Gravity.CENTER_VERTICAL);
+
+        if (!dialedNumber.isEmpty() && match != null) {
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(8), 0, dp(8), 0);
+            row.setBackground(round(PANEL, dp(18)));
+            row.setOnClickListener(v -> startOutgoingCall(match));
+
+            TextView avatar = avatar(match.initials().substring(0, 1), match.color);
+            row.addView(avatar, square(dp(isCompactDialer() ? 32 : 42)));
+
+            LinearLayout textBlock = new LinearLayout(this);
+            textBlock.setOrientation(LinearLayout.VERTICAL);
+            textBlock.setPadding(dp(10), 0, 0, 0);
+
+            TextView name = text(match.name, isCompactDialer() ? 13 : 16, TEXT, false);
+            TextView phone = text(match.phone, isCompactDialer() ? 10 : 12, MUTED, false);
+            textBlock.addView(name, fullWidth(dp(isCompactDialer() ? 20 : 24)));
+            textBlock.addView(phone, fullWidth(dp(isCompactDialer() ? 16 : 18)));
+            row.addView(textBlock, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+
+            TextView callMini = text("", 1, Color.WHITE, false);
+            callMini.setGravity(Gravity.CENTER);
+            callMini.setBackground(round(GREEN, dp(40)));
+            setPhoneIcon(callMini, isCompactDialer() ? 20 : 22);
+            row.addView(callMini, square(dp(isCompactDialer() ? 36 : 42)));
+
+            LinearLayout.LayoutParams rowParams = fullWidth(dp(isCompactDialer() ? 44 : 58));
+            rowParams.setMargins(0, 0, 0, dp(isCompactDialer() ? 2 : 8));
+            slot.addView(row, rowParams);
+        }
+
+        root.addView(slot, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1
+        ));
     }
 
     private void addDialDisplay(Contact match) {
@@ -199,7 +241,7 @@ public class MainActivity extends Activity {
 
         TextView number = text(dialedNumber, compact ? 23 : 34, TEXT, true);
         number.setGravity(Gravity.CENTER);
-        TextView name = text(match != null ? match.name : "", compact ? 10 : 14, GREEN, false);
+        TextView name = text(match != null && dialedNumber.isEmpty() ? match.name : "", compact ? 10 : 14, GREEN, false);
         name.setGravity(Gravity.CENTER);
 
         display.addView(number, fullWidth(dp(compact ? 30 : 46)));
@@ -302,9 +344,10 @@ public class MainActivity extends Activity {
         video.setGravity(Gravity.CENTER);
         line.addView(video, square(dp(buttonSize)));
 
-        TextView call = text("☎", compact ? 26 : 32, Color.WHITE, true);
+        TextView call = text("", 1, Color.WHITE, true);
         call.setGravity(Gravity.CENTER);
         call.setBackground(round(GREEN, dp(buttonSize)));
+        setPhoneIcon(call, compact ? 30 : 34);
         call.setOnClickListener(v -> {
             Contact target = match != null ? match : new Contact("unknown", "Bilinmeyen Numara", dialedNumber, "Geçici AI arama simülasyonu", "Default", Color.rgb(134, 160, 225));
             if (!target.phone.isEmpty()) {
@@ -704,6 +747,13 @@ public class MainActivity extends Activity {
         avatar.setGravity(Gravity.CENTER);
         avatar.setBackground(round(color, dp(1000)));
         return avatar;
+    }
+
+    private void setPhoneIcon(TextView view, int sizeDp) {
+        Drawable phone = getResources().getDrawable(R.drawable.ic_phone_white);
+        int size = dp(sizeDp);
+        phone.setBounds(0, 0, size, size);
+        view.setCompoundDrawables(null, phone, null, null);
     }
 
     private GradientDrawable round(int color, int radius) {
