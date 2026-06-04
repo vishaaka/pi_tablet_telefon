@@ -42,6 +42,14 @@ export PI_AI_API_BASE=https://api.openai.com/v1
 
 Her arama `POST /calls/start` ile kisinin persona oturumunu acar. `POST /calls/{call_id}/message` ayni kisiye ait konusma gecmisini kullanarak cevap verir.
 
+Gemini baglamak icin:
+
+```bash
+export PI_AI_PROVIDER=gemini
+export GEMINI_API_KEY=...
+export PI_AI_MODEL=gemini-flash-latest
+```
+
 ## Hailo Notu
 
 Hailo islemleri Android/Waydroid icinde degil, bu host servis tarafinda yapilacak. Ileride kamera goruntusu veya vision pipeline eklendiginde HailoRT kullanan modul `app/hailo_runtime.py` icinde gelistirilecek.
