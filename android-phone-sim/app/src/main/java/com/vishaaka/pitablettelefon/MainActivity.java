@@ -47,6 +47,7 @@ public class MainActivity extends Activity {
     private String dialedNumber = "";
     private Contact activeContact;
     private String activeCallId = "";
+    private String activeAiReply = "";
     private String backendStatus = "";
     private ToneGenerator toneGenerator;
     private int callSeconds = 0;
@@ -512,6 +513,7 @@ public class MainActivity extends Activity {
     private void startOutgoingCall(Contact contact) {
         activeContact = contact;
         activeCallId = "";
+        activeAiReply = "";
         callSeconds = 0;
         muted = false;
         speaker = true;
@@ -590,6 +592,7 @@ public class MainActivity extends Activity {
         screen = Screen.IN_CALL;
         stopCallAudio();
         renderInCall();
+        requestAiReply("Merhaba, aramaya baglandim.");
         handler.postDelayed(callTimer, 1000);
     }
 
@@ -619,9 +622,12 @@ public class MainActivity extends Activity {
         timer.setGravity(Gravity.CENTER);
         root.addView(timer, fullWidth(dp(44)));
 
-        TextView line = text(activeCallId.isEmpty() ? activeContact.persona : "AI oturumu bağlı", 14, subText, false);
+        String aiText = activeAiReply.isEmpty()
+                ? (activeCallId.isEmpty() ? activeContact.persona : "AI cevabi bekleniyor...")
+                : activeAiReply;
+        TextView line = text(aiText, 14, subText, false);
         line.setGravity(Gravity.CENTER);
-        root.addView(line, fullWidth(dp(34)));
+        root.addView(line, fullWidth(dp(54)));
 
         Space spacer = new Space(this);
         root.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1));
@@ -648,10 +654,7 @@ public class MainActivity extends Activity {
         LinearLayout bottom = new LinearLayout(this);
         bottom.setGravity(Gravity.CENTER);
         bottom.setPadding(0, dp(10), 0, 0);
-        bottom.addView(callControl("Tuşlar", dark, () -> {
-            dialedNumber = "";
-            showDialer();
-        }));
+        bottom.addView(callControl("AI Yanıt", dark, () -> requestAiReply("Devam et, seni dinliyorum.")));
 
         TextView end = text("Kapat", 17, Color.WHITE, true);
         end.setGravity(Gravity.CENTER);
@@ -661,6 +664,38 @@ public class MainActivity extends Activity {
         params.setMargins(dp(8), 0, dp(8), 0);
         bottom.addView(end, params);
         root.addView(bottom, fullWidth(dp(70)));
+    }
+
+    private void requestAiReply(String text) {
+        if (activeCallId.isEmpty()) {
+            activeAiReply = activeContact != null ? activeContact.persona : "";
+            renderInCall();
+            return;
+        }
+
+        activeAiReply = "AI yazıyor...";
+        renderInCall();
+        backendClient.sendMessage(activeCallId, text, new BackendClient.MessageCallback() {
+            @Override
+            public void onResult(String reply, String provider) {
+                handler.post(() -> {
+                    activeAiReply = reply;
+                    if (screen == Screen.IN_CALL) {
+                        renderInCall();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                handler.post(() -> {
+                    activeAiReply = activeContact != null ? activeContact.persona : message;
+                    if (screen == Screen.IN_CALL) {
+                        renderInCall();
+                    }
+                });
+            }
+        });
     }
 
     private View callControl(String label, boolean dark, Runnable action) {

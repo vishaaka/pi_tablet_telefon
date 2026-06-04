@@ -8,6 +8,7 @@ class Contact(BaseModel):
     persona: str
     voice: str
     video_enabled: bool = True
+    system_prompt: str | None = None
 
 
 class StartCallRequest(BaseModel):
@@ -31,6 +32,7 @@ class MessageResponse(BaseModel):
     reply: str
     voice: str
     video_hint: str | None = None
+    provider: str = "local"
 
 
 class EndCallResponse(BaseModel):

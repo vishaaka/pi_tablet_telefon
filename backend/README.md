@@ -22,6 +22,26 @@ uvicorn app.main:app --host 0.0.0.0 --port 8080
 - `POST /calls/{call_id}/message`
 - `POST /calls/{call_id}/end`
 
+## AI Persona Baglantisi
+
+Varsayilan mod yereldir; API anahtari olmadan her rehber kisisi kendi persona metniyle temsili cevap verir.
+
+OpenAI uyumlu bir servis baglamak icin systemd servisine veya shell'e su degiskenleri eklenebilir:
+
+```bash
+export PI_AI_PROVIDER=openai
+export OPENAI_API_KEY=...
+export PI_AI_MODEL=gpt-4o-mini
+```
+
+Opsiyonel:
+
+```bash
+export PI_AI_API_BASE=https://api.openai.com/v1
+```
+
+Her arama `POST /calls/start` ile kisinin persona oturumunu acar. `POST /calls/{call_id}/message` ayni kisiye ait konusma gecmisini kullanarak cevap verir.
+
 ## Hailo Notu
 
 Hailo islemleri Android/Waydroid icinde degil, bu host servis tarafinda yapilacak. Ileride kamera goruntusu veya vision pipeline eklendiginde HailoRT kullanan modul `app/hailo_runtime.py` icinde gelistirilecek.

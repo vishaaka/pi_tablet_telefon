@@ -27,6 +27,12 @@ final class BackendClient {
         void onError(String message);
     }
 
+    interface MessageCallback {
+        void onResult(String reply, String provider);
+
+        void onError(String message);
+    }
+
     private static final String[] BASE_URLS = {
             "http://192.168.240.1:8080",
             "http://192.168.240.112:8080",
@@ -86,6 +92,32 @@ final class BackendClient {
                 }
             }
             callback.onError(lastError == null ? "Arama backend'e gonderilemedi" : lastError.getMessage());
+        }).start();
+    }
+
+    void sendMessage(String callId, String text, MessageCallback callback) {
+        new Thread(() -> {
+            if (callId == null || callId.isEmpty()) {
+                callback.onError("Aktif AI oturumu yok");
+                return;
+            }
+
+            Exception lastError = null;
+            for (String baseUrl : candidateUrls()) {
+                try {
+                    JSONObject request = new JSONObject();
+                    request.put("text", text);
+
+                    String body = post(baseUrl + "/calls/" + callId + "/message", request.toString());
+                    JSONObject response = new JSONObject(body);
+                    workingBaseUrl = baseUrl;
+                    callback.onResult(response.optString("reply", ""), response.optString("provider", ""));
+                    return;
+                } catch (Exception error) {
+                    lastError = error;
+                }
+            }
+            callback.onError(lastError == null ? "AI mesaji gonderilemedi" : lastError.getMessage());
         }).start();
     }
 
