@@ -29,9 +29,12 @@ public class MainActivity extends Activity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final List<Contact> contacts = new ArrayList<>();
+    private final BackendClient backendClient = new BackendClient();
     private LinearLayout root;
     private String dialedNumber = "";
     private Contact activeContact;
+    private String backendStatus = "Backend araniyor...";
+    private String activeCallId = "";
     private ToneGenerator toneGenerator;
     private int callSeconds = 0;
     private boolean muted = false;
@@ -78,6 +81,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         seedContacts();
         showDialer();
+        refreshContactsFromBackend();
     }
 
     @Override
@@ -88,12 +92,42 @@ public class MainActivity extends Activity {
     }
 
     private void seedContacts() {
-        contacts.add(new Contact("Asya AI", "+90 532 101 10 10", "Sakin, net ve yardimci asistan", "Soft female", Color.rgb(61, 126, 255)));
-        contacts.add(new Contact("Deniz AI", "+90 533 202 20 20", "Enerjik teknik destek", "Warm male", Color.rgb(24, 160, 88)));
-        contacts.add(new Contact("Mira AI", "+90 534 303 30 30", "Goruntulu sohbet karakteri", "Bright female", Color.rgb(230, 180, 80)));
-        contacts.add(new Contact("Atlas AI", "+90 535 404 40 40", "Ciddi is gorusmesi karakteri", "Deep male", Color.rgb(214, 69, 69)));
-        contacts.add(new Contact("Zeynep AI", "+90 536 505 50 50", "Gunluk sohbet ve hatirlatma", "Calm female", Color.rgb(132, 94, 247)));
-        contacts.add(new Contact("Kerem AI", "+90 537 606 60 60", "Yabanci dil pratik partneri", "Clear male", Color.rgb(0, 150, 136)));
+        contacts.add(new Contact("asya", "Asya AI", "+90 532 101 10 10", "Sakin, net ve yardimci asistan", "Soft female", Color.rgb(61, 126, 255)));
+        contacts.add(new Contact("deniz", "Deniz AI", "+90 533 202 20 20", "Enerjik teknik destek", "Warm male", Color.rgb(24, 160, 88)));
+        contacts.add(new Contact("mira", "Mira AI", "+90 534 303 30 30", "Goruntulu sohbet karakteri", "Bright female", Color.rgb(230, 180, 80)));
+        contacts.add(new Contact("atlas", "Atlas AI", "+90 535 404 40 40", "Ciddi is gorusmesi karakteri", "Deep male", Color.rgb(214, 69, 69)));
+        contacts.add(new Contact("zeynep", "Zeynep AI", "+90 536 505 50 50", "Gunluk sohbet ve hatirlatma", "Calm female", Color.rgb(132, 94, 247)));
+        contacts.add(new Contact("kerem", "Kerem AI", "+90 537 606 60 60", "Yabanci dil pratik partneri", "Clear male", Color.rgb(0, 150, 136)));
+    }
+
+    private void refreshContactsFromBackend() {
+        backendClient.fetchContacts(new BackendClient.ContactsCallback() {
+            @Override
+            public void onResult(List<Contact> remoteContacts, String baseUrl) {
+                handler.post(() -> {
+                    contacts.clear();
+                    contacts.addAll(remoteContacts);
+                    backendStatus = "Backend bagli: " + baseUrl;
+                    if (screen == Screen.DIALER) {
+                        showDialer();
+                    } else if (screen == Screen.CONTACTS) {
+                        showContacts();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                handler.post(() -> {
+                    backendStatus = "Lokal rehber: " + message;
+                    if (screen == Screen.DIALER) {
+                        showDialer();
+                    } else if (screen == Screen.CONTACTS) {
+                        showContacts();
+                    }
+                });
+            }
+        });
     }
 
     private void resetRoot() {
@@ -139,7 +173,7 @@ public class MainActivity extends Activity {
     private void showDialer() {
         screen = Screen.DIALER;
         resetRoot();
-        addHeader("Pi Telefon", "AI kisilerle telefon simulasyonu");
+        addHeader("Pi Telefon", backendStatus);
         addTabs();
         renderDialer();
     }
@@ -208,7 +242,7 @@ public class MainActivity extends Activity {
 
         Button call = roundButton("Ara", 20, color("green"));
         call.setOnClickListener(v -> {
-            Contact target = match != null ? match : new Contact("Bilinmeyen Numara", dialedNumber, "Gecici AI arama simulasyonu", "Default", Color.rgb(61, 126, 255));
+            Contact target = match != null ? match : new Contact("unknown", "Bilinmeyen Numara", dialedNumber, "Gecici AI arama simulasyonu", "Default", Color.rgb(61, 126, 255));
             if (!target.phone.isEmpty()) {
                 startOutgoingCall(target);
             }
@@ -226,7 +260,7 @@ public class MainActivity extends Activity {
     private void showContacts() {
         screen = Screen.CONTACTS;
         resetRoot();
-        addHeader("Rehber", "Temsili numaralar secilebilir");
+        addHeader("Rehber", backendStatus);
         addTabs();
 
         ScrollView scrollView = new ScrollView(this);
@@ -286,16 +320,39 @@ public class MainActivity extends Activity {
 
     private void startOutgoingCall(Contact contact) {
         activeContact = contact;
+        activeCallId = "";
         callSeconds = 0;
         muted = false;
         speaker = true;
         video = false;
         screen = Screen.RINGING;
         renderRinging("Araniyor", "Baglanti hazirlaniyor...");
+        backendClient.startCall(contact, "voice", new BackendClient.CallCallback() {
+            @Override
+            public void onResult(String callId, String baseUrl) {
+                handler.post(() -> {
+                    activeCallId = callId;
+                    backendStatus = "Backend bagli: " + baseUrl;
+                    if (screen == Screen.RINGING) {
+                        renderRinging("Caliyor", "AI oturumu acildi");
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                handler.post(() -> {
+                    activeCallId = "";
+                    if (screen == Screen.RINGING) {
+                        renderRinging("Caliyor", "Lokal simulasyon: " + message);
+                    }
+                });
+            }
+        });
         startRingAudio();
         handler.postDelayed(() -> {
             if (screen == Screen.RINGING) {
-                renderRinging("Caliyor", "AI kisi cevap bekliyor...");
+                renderRinging("Caliyor", activeCallId.isEmpty() ? "AI kisi cevap bekliyor..." : "AI oturumu hazir");
             }
         }, 1400);
         handler.postDelayed(autoAnswer, 5200);
@@ -368,7 +425,8 @@ public class MainActivity extends Activity {
         timer.setGravity(Gravity.CENTER);
         root.addView(timer);
 
-        TextView aiLine = label("AI persona: " + activeContact.persona, 14, color("text_secondary"), false);
+        String callLine = activeCallId.isEmpty() ? "Lokal arama" : "Call ID: " + activeCallId.substring(0, Math.min(8, activeCallId.length()));
+        TextView aiLine = label("AI persona: " + activeContact.persona + " - " + callLine, 14, color("text_secondary"), false);
         aiLine.setGravity(Gravity.CENTER);
         root.addView(aiLine);
 
