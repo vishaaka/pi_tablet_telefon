@@ -23,7 +23,9 @@ if command -v hailortcli >/dev/null 2>&1; then
 else
   echo "hailortcli not found. Try:"
   echo "sudo apt update"
-  echo "sudo apt install --reinstall hailo-all hailort hailo-dkms python3-hailort"
+  echo "apt-cache search '^(hailo|hailort)'"
+  echo "sudo apt install --reinstall hailo-all hailort python3-hailort"
+  echo "If hailo-dkms exists in your apt search output, also install it."
   echo "sudo reboot"
   exit 1
 fi
