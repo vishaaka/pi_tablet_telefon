@@ -88,7 +88,7 @@ def _get_hf_client():
 
         space = os.getenv("HF_TTS_SPACE", "innoai/Edge-TTS-Text-to-Speech")
         token = os.getenv("HF_TOKEN") or None
-        _hf_client = Client(space, hf_token=token)
+        _hf_client = Client(space, token=token)
     return _hf_client
 
 
