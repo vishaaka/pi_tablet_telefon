@@ -164,7 +164,7 @@ public class MainActivity extends Activity {
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(14), dp(18), dp(14), 0);
+        content.setPadding(dp(14), dp(screen == Screen.DIALER && isCompactDialer() ? 4 : 18), dp(14), 0);
         shell.addView(content, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         root = content;
 
@@ -182,36 +182,48 @@ public class MainActivity extends Activity {
         root.addView(topSpace, new LinearLayout.LayoutParams(1, 0, 1));
 
         Contact match = findMatchingContact();
-        if (!dialedNumber.isEmpty()) {
-            TextView number = text(dialedNumber, 28, TEXT, true);
-            number.setGravity(Gravity.CENTER);
-            root.addView(number, fullWidth(dp(42)));
-            if (match != null) {
-                TextView name = text(match.name, 15, GREEN, false);
-                name.setGravity(Gravity.CENTER);
-                root.addView(name, fullWidth(dp(26)));
-            }
-        }
+        addDialDisplay(match);
 
         addKeypad();
         addDialerCallButton(match);
 
         Space bottomSpace = new Space(this);
-        root.addView(bottomSpace, new LinearLayout.LayoutParams(1, dp(10)));
+        root.addView(bottomSpace, new LinearLayout.LayoutParams(1, dp(isCompactDialer() ? 0 : 10)));
+    }
+
+    private void addDialDisplay(Contact match) {
+        boolean compact = isCompactDialer();
+        LinearLayout display = new LinearLayout(this);
+        display.setOrientation(LinearLayout.VERTICAL);
+        display.setGravity(Gravity.CENTER);
+
+        TextView number = text(dialedNumber, compact ? 23 : 34, TEXT, true);
+        number.setGravity(Gravity.CENTER);
+        TextView name = text(match != null ? match.name : "", compact ? 10 : 14, GREEN, false);
+        name.setGravity(Gravity.CENTER);
+
+        display.addView(number, fullWidth(dp(compact ? 30 : 46)));
+        display.addView(name, fullWidth(dp(compact ? 16 : 24)));
+        root.addView(display, fullWidth(dp(compact ? 48 : 76)));
     }
 
     private void addTopActions(boolean showTitle, boolean contactsMode) {
+        boolean compactDialer = !showTitle && isCompactDialer();
+        int barHeight = compactDialer ? 42 : 62;
+        int itemHeight = compactDialer ? 36 : 54;
+        int iconSize = compactDialer ? 36 : 44;
+
         LinearLayout bar = new LinearLayout(this);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(0, 0, 0, dp(8));
+        bar.setPadding(0, 0, 0, dp(compactDialer ? 0 : 8));
 
         if (showTitle) {
             TextView title = text("Telefon", contactsMode ? 22 : 30, TEXT, true);
             title.setGravity(contactsMode ? Gravity.START : Gravity.CENTER);
-            bar.addView(title, new LinearLayout.LayoutParams(0, dp(54), 1));
+            bar.addView(title, new LinearLayout.LayoutParams(0, dp(itemHeight), 1));
         } else {
             Space space = new Space(this);
-            bar.addView(space, new LinearLayout.LayoutParams(0, dp(54), 1));
+            bar.addView(space, new LinearLayout.LayoutParams(0, dp(itemHeight), 1));
         }
 
         if (contactsMode) {
@@ -219,10 +231,10 @@ public class MainActivity extends Activity {
             }), square(dp(44)));
         }
         bar.addView(iconButton("⌕", 28, v -> {
-        }), square(dp(44)));
+        }), square(dp(iconSize)));
         bar.addView(iconButton("⋮", 26, v -> {
-        }), square(dp(34)));
-        root.addView(bar, fullWidth(dp(62)));
+        }), square(dp(compactDialer ? 30 : 34)));
+        root.addView(bar, fullWidth(dp(barHeight)));
     }
 
     private void addKeypad() {
@@ -246,13 +258,14 @@ public class MainActivity extends Activity {
             line.setGravity(Gravity.CENTER);
             for (int col = 0; col < 3; col++) {
                 String[] key = keys[row * 3 + col];
-                line.addView(keyView(key[0], key[1]), new LinearLayout.LayoutParams(0, dp(68), 1));
+                line.addView(keyView(key[0], key[1]), new LinearLayout.LayoutParams(0, dp(dialerKeyHeight()), 1));
             }
-            root.addView(line, fullWidth(dp(68)));
+            root.addView(line, fullWidth(dp(dialerKeyHeight())));
         }
     }
 
     private View keyView(String digit, String letters) {
+        boolean compact = isCompactDialer();
         LinearLayout key = new LinearLayout(this);
         key.setOrientation(LinearLayout.VERTICAL);
         key.setGravity(Gravity.CENTER);
@@ -269,34 +282,43 @@ public class MainActivity extends Activity {
             return false;
         });
 
-        TextView number = text(digit, 34, Color.BLACK, false);
+        TextView number = text(digit, compact ? 26 : 34, Color.BLACK, false);
         number.setGravity(Gravity.CENTER);
-        TextView sub = text(letters, 11, MUTED, false);
+        TextView sub = text(letters, compact ? 9 : 11, MUTED, false);
         sub.setGravity(Gravity.CENTER);
-        key.addView(number, fullWidth(dp(38)));
-        key.addView(sub, fullWidth(dp(18)));
+        key.addView(number, fullWidth(dp(compact ? 29 : 38)));
+        key.addView(sub, fullWidth(dp(compact ? 14 : 18)));
         return key;
     }
 
     private void addDialerCallButton(Contact match) {
+        boolean compact = isCompactDialer();
+        int buttonSize = compact ? 50 : 64;
         LinearLayout line = new LinearLayout(this);
         line.setGravity(Gravity.CENTER);
-        line.setPadding(0, dp(8), 0, 0);
+        line.setPadding(0, dp(compact ? 2 : 8), 0, 0);
 
-        TextView call = text("☎", 32, Color.WHITE, true);
+        TextView video = text(dialedNumber.isEmpty() ? "" : "▣", compact ? 22 : 26, GREEN, true);
+        video.setGravity(Gravity.CENTER);
+        line.addView(video, square(dp(buttonSize)));
+
+        TextView call = text("☎", compact ? 26 : 32, Color.WHITE, true);
         call.setGravity(Gravity.CENTER);
-        call.setBackground(round(GREEN, dp(64)));
+        call.setBackground(round(GREEN, dp(buttonSize)));
         call.setOnClickListener(v -> {
             Contact target = match != null ? match : new Contact("unknown", "Bilinmeyen Numara", dialedNumber, "Geçici AI arama simülasyonu", "Default", Color.rgb(134, 160, 225));
             if (!target.phone.isEmpty()) {
                 startOutgoingCall(target);
             }
         });
-        line.addView(call, square(dp(64)));
+        LinearLayout.LayoutParams callParams = square(dp(buttonSize));
+        callParams.setMargins(dp(compact ? 16 : 26), 0, dp(compact ? 16 : 26), 0);
+        line.addView(call, callParams);
 
+        TextView delete = text("", compact ? 20 : 24, MUTED, false);
+        delete.setGravity(Gravity.CENTER);
         if (!dialedNumber.isEmpty()) {
-            TextView delete = text("⌫", 24, MUTED, false);
-            delete.setGravity(Gravity.CENTER);
+            delete.setText("⌫");
             delete.setOnClickListener(v -> {
                 if (!dialedNumber.isEmpty()) {
                     dialedNumber = dialedNumber.substring(0, dialedNumber.length() - 1);
@@ -308,12 +330,10 @@ public class MainActivity extends Activity {
                 showDialer();
                 return true;
             });
-            LinearLayout.LayoutParams deleteParams = square(dp(64));
-            deleteParams.setMargins(dp(24), 0, 0, 0);
-            line.addView(delete, deleteParams);
         }
+        line.addView(delete, square(dp(buttonSize)));
 
-        root.addView(line, fullWidth(dp(82)));
+        root.addView(line, fullWidth(dp(compact ? 58 : 82)));
     }
 
     private void showRecents() {
@@ -420,13 +440,14 @@ public class MainActivity extends Activity {
     private void addBottomNav(LinearLayout shell) {
         LinearLayout nav = new LinearLayout(this);
         nav.setGravity(Gravity.CENTER);
-        nav.setPadding(0, dp(4), 0, dp(4));
+        boolean compact = screen == Screen.DIALER && isCompactDialer();
+        nav.setPadding(0, dp(compact ? 0 : 4), 0, dp(compact ? 0 : 4));
         nav.setBackgroundColor(BG);
-        shell.addView(nav, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(70)));
+        shell.addView(nav, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(compact ? 54 : 70)));
 
-        nav.addView(navItem("⠿", "Klavye", screen == Screen.DIALER, v -> showDialer()), new LinearLayout.LayoutParams(0, dp(62), 1));
-        nav.addView(navItem("☏", "Son aramalar", screen == Screen.RECENTS, v -> showRecents()), new LinearLayout.LayoutParams(0, dp(62), 1));
-        nav.addView(navItem("♙", "Kişiler", screen == Screen.CONTACTS, v -> showContacts()), new LinearLayout.LayoutParams(0, dp(62), 1));
+        nav.addView(navItem("⠿", "Klavye", screen == Screen.DIALER, v -> showDialer()), new LinearLayout.LayoutParams(0, dp(compact ? 52 : 62), 1));
+        nav.addView(navItem("☏", "Son aramalar", screen == Screen.RECENTS, v -> showRecents()), new LinearLayout.LayoutParams(0, dp(compact ? 52 : 62), 1));
+        nav.addView(navItem("♙", "Kişiler", screen == Screen.CONTACTS, v -> showContacts()), new LinearLayout.LayoutParams(0, dp(compact ? 52 : 62), 1));
     }
 
     private View navItem(String icon, String label, boolean selected, View.OnClickListener listener) {
@@ -438,10 +459,10 @@ public class MainActivity extends Activity {
 
         TextView iconView = text(icon, 22, color, selected);
         iconView.setGravity(Gravity.CENTER);
-        TextView labelView = text(label, 12, color, selected);
+        TextView labelView = text(label, isCompactDialer() && screen == Screen.DIALER ? 10 : 12, color, selected);
         labelView.setGravity(Gravity.CENTER);
-        item.addView(iconView, fullWidth(dp(28)));
-        item.addView(labelView, fullWidth(dp(24)));
+        item.addView(iconView, fullWidth(dp(isCompactDialer() && screen == Screen.DIALER ? 24 : 28)));
+        item.addView(labelView, fullWidth(dp(isCompactDialer() && screen == Screen.DIALER ? 20 : 24)));
         return item;
     }
 
@@ -698,6 +719,16 @@ public class MainActivity extends Activity {
 
     private LinearLayout.LayoutParams square(int size) {
         return new LinearLayout.LayoutParams(size, size);
+    }
+
+    private boolean isCompactDialer() {
+        float density = getResources().getDisplayMetrics().density;
+        int heightDp = (int) (getResources().getDisplayMetrics().heightPixels / density);
+        return heightDp < 560;
+    }
+
+    private int dialerKeyHeight() {
+        return isCompactDialer() ? 48 : 68;
     }
 
     private String formatTime(int totalSeconds) {
