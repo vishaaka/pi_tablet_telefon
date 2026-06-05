@@ -51,6 +51,7 @@ public class MainActivity extends Activity {
     private String activeAiReply = "";
     private String backendStatus = "";
     private ToneGenerator toneGenerator;
+    private ToneGenerator keyToneGenerator;
     private MediaPlayer mediaPlayer;
     private int callSeconds = 0;
     private boolean muted = false;
@@ -96,6 +97,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         configureWindow();
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
         seedContacts();
         seedRecentCalls();
         showDialer();
@@ -106,6 +108,7 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         stopCallAudio();
         stopTtsAudio();
+        stopKeyAudio();
         handler.removeCallbacksAndMessages(null);
         super.onDestroy();
     }
@@ -317,6 +320,7 @@ public class MainActivity extends Activity {
         key.setGravity(Gravity.CENTER);
         key.setOnClickListener(v -> {
             dialedNumber += digit;
+            playKeyTone(digit);
             showDialer();
         });
         key.setOnLongClickListener(v -> {
@@ -750,7 +754,7 @@ public class MainActivity extends Activity {
 
     private void startRingAudio() {
         stopCallAudio();
-        toneGenerator = new ToneGenerator(AudioManager.STREAM_VOICE_CALL, 70);
+        toneGenerator = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
         handler.post(ringLoop);
     }
 
@@ -759,6 +763,58 @@ public class MainActivity extends Activity {
         if (toneGenerator != null) {
             toneGenerator.release();
             toneGenerator = null;
+        }
+    }
+
+    private void playKeyTone(String digit) {
+        try {
+            if (keyToneGenerator == null) {
+                keyToneGenerator = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+            }
+            keyToneGenerator.startTone(toneForDigit(digit), 120);
+        } catch (Exception ignored) {
+            stopKeyAudio();
+        }
+    }
+
+    private int toneForDigit(String digit) {
+        switch (digit) {
+            case "1":
+                return ToneGenerator.TONE_DTMF_1;
+            case "2":
+                return ToneGenerator.TONE_DTMF_2;
+            case "3":
+                return ToneGenerator.TONE_DTMF_3;
+            case "4":
+                return ToneGenerator.TONE_DTMF_4;
+            case "5":
+                return ToneGenerator.TONE_DTMF_5;
+            case "6":
+                return ToneGenerator.TONE_DTMF_6;
+            case "7":
+                return ToneGenerator.TONE_DTMF_7;
+            case "8":
+                return ToneGenerator.TONE_DTMF_8;
+            case "9":
+                return ToneGenerator.TONE_DTMF_9;
+            case "0":
+                return ToneGenerator.TONE_DTMF_0;
+            case "*":
+                return ToneGenerator.TONE_DTMF_S;
+            case "#":
+                return ToneGenerator.TONE_DTMF_P;
+            default:
+                return ToneGenerator.TONE_PROP_BEEP;
+        }
+    }
+
+    private void stopKeyAudio() {
+        if (keyToneGenerator != null) {
+            try {
+                keyToneGenerator.release();
+            } catch (Exception ignored) {
+            }
+            keyToneGenerator = null;
         }
     }
 
@@ -771,6 +827,7 @@ public class MainActivity extends Activity {
             mediaPlayer = new MediaPlayer();
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mediaPlayer.setDataSource(audioUrl);
+            mediaPlayer.setVolume(1.0f, 1.0f);
             mediaPlayer.setOnPreparedListener(MediaPlayer::start);
             mediaPlayer.setOnCompletionListener(player -> stopTtsAudio());
             mediaPlayer.setOnErrorListener((player, what, extra) -> {
