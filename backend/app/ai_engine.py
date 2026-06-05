@@ -9,6 +9,15 @@ from dataclasses import dataclass, field
 from .models import Contact
 
 
+CHILD_SAFE_PROMPT = (
+    "Kullanici bir cocuk olabilir. Yasina uygun, sade, temiz ve sakin Turkce kullan. "
+    "Kisa, net, sevecen ve ogretici cevap ver. Korkutucu, yetiskinlere uygun, kufurlu, cinsel, "
+    "siddetli veya tehlikeli icerige girme. Tehlikeli bir istek olursa nazikce reddet ve guvenli "
+    "bir yetiskinden yardim istemesini soyle. Tibbi, hukuki veya acil durumda ebeveyn ya da guvenilir "
+    "bir yetiskine haber vermesini oner. En fazla 12-16 kelimelik tam cumleler kur."
+)
+
+
 @dataclass
 class CallSession:
     contact: Contact
@@ -81,7 +90,7 @@ def _openai_reply(session: CallSession, user_text: str) -> AiReply:
             "content": (
                 system_prompt
                 + " Bu bir telefon gorusmesi simulasyonu. Gercek kisi oldugunu iddia etme; AI karakter olarak konus. "
-                + "Turkce cevap ver ve 1-3 cumlede kal."
+                + CHILD_SAFE_PROMPT
             ),
         }
     ]
@@ -129,7 +138,7 @@ def _gemini_reply(session: CallSession, user_text: str) -> AiReply:
     prompt = (
         f"{system_prompt}\n"
         "Bu bir telefon gorusmesi simulasyonu. Gercek kisi oldugunu iddia etme; AI karakter olarak konus. "
-        "Turkce cevap ver ve 1-3 cumlede kal.\n\n"
+        f"{CHILD_SAFE_PROMPT}\n\n"
         f"Konusma gecmisi:\n{history_text}\n\n"
         f"Kullanici: {user_text}\n"
         f"{session.contact.name}:"
@@ -196,8 +205,8 @@ def _gemini_audio_reply(session: CallSession, audio_path: str, prompt_text: str)
         "Bu bir telefon gorusmesi simulasyonu. Kullanicinin ses kaydindaki Turkce konusmayi dinle. "
         "Once ne dedigini anla, sonra telefondaki AI karakter olarak dogrudan cevap ver. "
         "Eger kullanici bir soru sorduysa selamlama yapma, soruya cevap ver. "
-        "Transkript yazma; sadece verilecek cevabi yaz. En fazla 18 kelimelik tek tam cumle kur. "
-        "Cumle bitmeden yeni bir fikir acma.\n\n"
+        f"{CHILD_SAFE_PROMPT} "
+        "Transkript yazma; sadece verilecek cevabi yaz. Tek tam cumle kur. Cumle bitmeden yeni bir fikir acma.\n\n"
         f"Konusma gecmisi:\n{history_text}\n\n"
         f"Gorev: {prompt_text}\n"
         f"{session.contact.name}:"
@@ -257,16 +266,16 @@ def _clean_phone_reply(text: str) -> str:
 
     sentences = re.findall(r"[^.!?…]+[.!?…]", cleaned)
     if sentences:
-        cleaned = " ".join(sentence.strip() for sentence in sentences[:2])
+        cleaned = sentences[0].strip()
     else:
         words = cleaned.split()
-        cleaned = " ".join(words[:18]).rstrip(",;:")
+        cleaned = " ".join(words[:16]).rstrip(",;:")
         if cleaned and cleaned[-1] not in ".!?…":
             cleaned += "."
 
     words = cleaned.split()
-    if len(words) > 24:
-        cleaned = " ".join(words[:24]).rstrip(",;:") + "."
+    if len(words) > 18:
+        cleaned = " ".join(words[:18]).rstrip(",;:") + "."
     return cleaned
 
 
@@ -279,8 +288,8 @@ def _local_reply(contact: Contact, user_text: str, prefix: str | None = None) ->
     if not text:
         return intro + "Buradayim, seni dinliyorum."
     if "merhaba" in text.lower() or "selam" in text.lower():
-        return intro + f"Merhaba. Ben {contact.name}; {contact.persona.lower()} olarak bu gorusmedeyim."
+        return intro + f"Merhaba, seni dinliyorum."
     if "nasılsın" in text.lower() or "nasilsin" in text.lower():
-        return intro + "Iyiyim, tesekkur ederim. Senin icin buradayim."
+        return intro + "Iyiyim, tesekkur ederim. Sen nasilsin?"
 
-    return intro + f"'{text}' mesajini aldim. Bu kisinin persona modu: {contact.persona}."
+    return intro + "Seni anladim. Bunu sakin ve guvenli sekilde konusalim."
