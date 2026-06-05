@@ -21,6 +21,18 @@ Hedef cihaz:
 8. `scripts/install-waydroid.sh` ile Waydroid kurulumunu dene.
 9. Android APK'yi Waydroid icine yukle.
 
+## MAX98357A I2S Hoparlor
+
+USB ses kartini mikrofon girisi, MAX98357A'yi hoparlor cikisi olarak kullanmak icin:
+
+```bash
+bash device/scripts/setup-max98357a.sh
+sudo reboot
+bash device/scripts/check-max98357a.sh
+```
+
+Ayrinti: `docs/max98357a-audio-output.md`
+
 ## Backend Servisi
 
 Servisi mevcut kullanici ve repo konumuna gore otomatik olusturmak icin:

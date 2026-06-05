@@ -57,3 +57,5 @@ Backend detaylari: [backend/README.md](backend/README.md)
 Cihaz detaylari: [device/README.md](device/README.md)
 
 Ilk kurulumdan itibaren adim adim bring-up: [docs/pi-bringup-step-by-step.md](docs/pi-bringup-step-by-step.md)
+
+MAX98357A I2S hoparlor cikisi: [docs/max98357a-audio-output.md](docs/max98357a-audio-output.md)
