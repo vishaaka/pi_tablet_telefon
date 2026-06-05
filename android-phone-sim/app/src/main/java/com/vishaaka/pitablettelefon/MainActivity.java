@@ -57,6 +57,8 @@ public class MainActivity extends Activity {
     private boolean muted = false;
     private boolean speaker = true;
     private boolean video = false;
+    private boolean initialGreetingRequested = false;
+    private boolean pendingInitialGreeting = false;
     private Screen screen = Screen.DIALER;
 
     private final Runnable ringLoop = new Runnable() {
@@ -551,6 +553,8 @@ public class MainActivity extends Activity {
         muted = false;
         speaker = true;
         video = false;
+        initialGreetingRequested = false;
+        pendingInitialGreeting = false;
         screen = Screen.RINGING;
         renderRinging("Aranıyor", "Bağlantı hazırlanıyor...");
 
@@ -562,6 +566,8 @@ public class MainActivity extends Activity {
                     backendStatus = baseUrl;
                     if (screen == Screen.RINGING) {
                         renderRinging("Çalıyor", "AI oturumu açıldı");
+                    } else if (screen == Screen.IN_CALL && pendingInitialGreeting) {
+                        requestInitialGreeting();
                     }
                 });
             }
@@ -625,7 +631,7 @@ public class MainActivity extends Activity {
         screen = Screen.IN_CALL;
         stopCallAudio();
         renderInCall();
-        requestAiReply("Merhaba, aramaya baglandim.");
+        requestInitialGreeting();
         handler.postDelayed(callTimer, 1000);
     }
 
@@ -701,7 +707,7 @@ public class MainActivity extends Activity {
 
     private void requestAiReply(String text) {
         if (activeCallId.isEmpty()) {
-            activeAiReply = activeContact != null ? activeContact.persona : "";
+            activeAiReply = "AI oturumu hazırlanıyor...";
             renderInCall();
             return;
         }
@@ -730,6 +736,21 @@ public class MainActivity extends Activity {
                 });
             }
         });
+    }
+
+    private void requestInitialGreeting() {
+        if (initialGreetingRequested) {
+            return;
+        }
+        if (activeCallId.isEmpty()) {
+            pendingInitialGreeting = true;
+            activeAiReply = "AI oturumu hazırlanıyor...";
+            renderInCall();
+            return;
+        }
+        pendingInitialGreeting = false;
+        initialGreetingRequested = true;
+        requestAiReply("Arama yeni acildi. Telefonda ilk sozu sen soyluyorsun. 'Alo, merhaba' diye basla, kendini kisaca tanit ve kullaniciyi dinledigini soyle.");
     }
 
     private View callControl(String label, boolean dark, Runnable action) {
