@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import re
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
@@ -111,7 +112,7 @@ def _openai_reply(session: CallSession, user_text: str) -> AiReply:
         raise RuntimeError(f"HTTP {error.code}: {body[:240]}") from error
 
     reply = data["choices"][0]["message"]["content"].strip()
-    return AiReply(text=reply, provider="openai")
+    return AiReply(text=_clean_phone_reply(reply), provider="openai")
 
 
 def _gemini_reply(session: CallSession, user_text: str) -> AiReply:
@@ -173,7 +174,7 @@ def _gemini_reply(session: CallSession, user_text: str) -> AiReply:
     text = "".join(part.get("text", "") for part in parts).strip()
     if not text:
         raise RuntimeError("Gemini cevap metni bos")
-    return AiReply(text=text, provider="gemini")
+    return AiReply(text=_clean_phone_reply(text), provider="gemini")
 
 
 def _gemini_audio_reply(session: CallSession, audio_path: str, prompt_text: str) -> AiReply:
@@ -195,7 +196,8 @@ def _gemini_audio_reply(session: CallSession, audio_path: str, prompt_text: str)
         "Bu bir telefon gorusmesi simulasyonu. Kullanicinin ses kaydindaki Turkce konusmayi dinle. "
         "Once ne dedigini anla, sonra telefondaki AI karakter olarak dogrudan cevap ver. "
         "Eger kullanici bir soru sorduysa selamlama yapma, soruya cevap ver. "
-        "Transkript yazma; sadece verilecek cevabi yaz. 1-3 tam cumlede kal ve son cumleyi yarim birakma.\n\n"
+        "Transkript yazma; sadece verilecek cevabi yaz. En fazla 18 kelimelik tek tam cumle kur. "
+        "Cumle bitmeden yeni bir fikir acma.\n\n"
         f"Konusma gecmisi:\n{history_text}\n\n"
         f"Gorev: {prompt_text}\n"
         f"{session.contact.name}:"
@@ -216,8 +218,8 @@ def _gemini_audio_reply(session: CallSession, audio_path: str, prompt_text: str)
             }
         ],
         "generationConfig": {
-            "temperature": 0.7,
-            "maxOutputTokens": 260,
+            "temperature": 0.45,
+            "maxOutputTokens": 90,
         },
     }
     request = urllib.request.Request(
@@ -244,7 +246,28 @@ def _gemini_audio_reply(session: CallSession, audio_path: str, prompt_text: str)
     text = "".join(part.get("text", "") for part in parts).strip()
     if not text:
         raise RuntimeError("Gemini ses cevap metni bos")
-    return AiReply(text=text, provider="gemini-audio")
+    return AiReply(text=_clean_phone_reply(text), provider="gemini-audio")
+
+
+def _clean_phone_reply(text: str) -> str:
+    cleaned = " ".join(text.replace("\n", " ").split())
+    cleaned = re.sub(r"^[A-Za-zÇĞİÖŞÜçğıöşü0-9 _-]{1,32}:\s*", "", cleaned)
+    if not cleaned:
+        return "Seni dinliyorum."
+
+    sentences = re.findall(r"[^.!?…]+[.!?…]", cleaned)
+    if sentences:
+        cleaned = " ".join(sentence.strip() for sentence in sentences[:2])
+    else:
+        words = cleaned.split()
+        cleaned = " ".join(words[:18]).rstrip(",;:")
+        if cleaned and cleaned[-1] not in ".!?…":
+            cleaned += "."
+
+    words = cleaned.split()
+    if len(words) > 24:
+        cleaned = " ".join(words[:24]).rstrip(",;:") + "."
+    return cleaned
 
 
 def _local_reply(contact: Contact, user_text: str, prefix: str | None = None) -> str:

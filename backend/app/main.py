@@ -73,7 +73,7 @@ def listen_and_reply(call_id: str) -> MessageResponse:
         raise HTTPException(status_code=500, detail=f"Microphone capture failed: {error}") from error
 
     prompt = "Kullanicinin az once soyledigine cevap ver."
-    session.history.append({"role": "user", "content": "[voice message]"})
+    session.history.append({"role": "user", "content": "[sesli mesaj]"})
     ai_reply = generate_reply_from_audio(session, str(audio_path), prompt)
     session.history.append({"role": "assistant", "content": ai_reply.text})
     tts = synthesize_for_contact(call_id, session.contact, ai_reply.text)
