@@ -186,7 +186,20 @@ waydroid app install app-debug.apk
 waydroid app launch com.vishaaka.pitablettelefon
 ```
 
-## 8. Ilk Kabul Testi
+## 8. Acilista Hazir Calisma
+
+Pi acildiginda backend, ses, Waydroid ve Pi Telefon uygulamasinin otomatik hazir hale gelmesi icin:
+
+```bash
+cd ~/pi_tablet_telefon
+bash device/scripts/install-phone-autostart-service.sh ~/pi_tablet_telefon
+systemctl status pi-tablet-phone-autostart --no-pager
+tail -n 80 ~/pi-tablet-phone-autostart.log
+```
+
+Bu servis once masaustu oturumunu ve backend'i bekler, sonra Waydroid oturumunu baslatir, APK kurulu degilse yukler ve Pi Telefon uygulamasini acar.
+
+## 9. Ilk Kabul Testi
 
 Uygulamada:
 

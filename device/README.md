@@ -53,3 +53,18 @@ Servisi mevcut kullanici ve repo konumuna gore otomatik olusturmak icin:
 bash device/scripts/install-backend-service.sh ~/pi_tablet_telefon
 curl http://127.0.0.1:8080/health
 ```
+
+## Acilista Otomatik Telefon
+
+Pi acildiginda backend, ses seviyesi, Waydroid ve Pi Telefon uygulamasini hazir hale getirmek icin:
+
+```bash
+bash device/scripts/install-phone-autostart-service.sh ~/pi_tablet_telefon
+```
+
+Kontrol:
+
+```bash
+systemctl status pi-tablet-phone-autostart --no-pager
+tail -n 80 ~/pi-tablet-phone-autostart.log
+```
