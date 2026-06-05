@@ -77,6 +77,10 @@ Arama icinde `POST /calls/{call_id}/listen` endpoint'i host mikrofonundan kisa k
 ```bash
 export PI_MIC_DEVICE=plughw:2,0
 export PI_MIC_RATE=16000
+export PI_MIC_WAIT_SECONDS=6
+export PI_MIC_MAX_SECONDS=7
+export PI_MIC_START_THRESHOLD=700
+export PI_MIC_SILENCE_THRESHOLD=420
 ```
 
 ## Hailo Notu

@@ -749,7 +749,7 @@ public class MainActivity extends Activity {
             return;
         }
 
-        activeAiReply = "Dinliyorum... 5 sn konuş";
+        activeAiReply = "Hazır... konuşunca dinleyeceğim";
         renderInCall();
         backendClient.listenAndReply(activeCallId, new BackendClient.MessageCallback() {
             @Override

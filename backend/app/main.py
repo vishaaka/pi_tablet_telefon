@@ -68,7 +68,7 @@ def listen_and_reply(call_id: str) -> MessageResponse:
 
     session = active_calls[call_id]
     try:
-        audio_path = capture_call_audio(call_id, seconds=5)
+        audio_path = capture_call_audio(call_id, seconds=7)
     except Exception as error:
         raise HTTPException(status_code=500, detail=f"Microphone capture failed: {error}") from error
 

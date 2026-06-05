@@ -193,8 +193,9 @@ def _gemini_audio_reply(session: CallSession, audio_path: str, prompt_text: str)
     prompt = (
         f"{system_prompt}\n"
         "Bu bir telefon gorusmesi simulasyonu. Kullanicinin ses kaydindaki Turkce konusmayi dinle. "
-        "Once ne dedigini anla, sonra telefondaki AI karakter olarak kisa ve dogal cevap ver. "
-        "Transkript yazma; sadece verilecek cevabi yaz. 1-3 cumlede kal.\n\n"
+        "Once ne dedigini anla, sonra telefondaki AI karakter olarak dogrudan cevap ver. "
+        "Eger kullanici bir soru sorduysa selamlama yapma, soruya cevap ver. "
+        "Transkript yazma; sadece verilecek cevabi yaz. 1-3 tam cumlede kal ve son cumleyi yarim birakma.\n\n"
         f"Konusma gecmisi:\n{history_text}\n\n"
         f"Gorev: {prompt_text}\n"
         f"{session.contact.name}:"
@@ -216,7 +217,7 @@ def _gemini_audio_reply(session: CallSession, audio_path: str, prompt_text: str)
         ],
         "generationConfig": {
             "temperature": 0.7,
-            "maxOutputTokens": 180,
+            "maxOutputTokens": 260,
         },
     }
     request = urllib.request.Request(
