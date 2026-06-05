@@ -576,8 +576,9 @@ public class MainActivity extends Activity {
             public void onError(String message) {
                 handler.post(() -> {
                     activeCallId = "";
+                    backendStatus = message;
                     if (screen == Screen.RINGING) {
-                        renderRinging("Çalıyor", "Yerel simülasyon");
+                        renderRinging("Backend yok", shortStatus(message));
                     }
                 });
             }
@@ -586,7 +587,10 @@ public class MainActivity extends Activity {
         startRingAudio();
         handler.postDelayed(() -> {
             if (screen == Screen.RINGING) {
-                renderRinging("Çalıyor", activeCallId.isEmpty() ? "AI kişi cevap bekliyor..." : "AI oturumu hazır");
+                renderRinging(
+                        activeCallId.isEmpty() ? "Backend bekleniyor" : "Çalıyor",
+                        activeCallId.isEmpty() ? shortStatus(backendStatus.isEmpty() ? "AI oturumu bekleniyor" : backendStatus) : "AI oturumu hazır"
+                );
             }
         }, 1400);
         handler.postDelayed(autoAnswer, 5200);
@@ -662,7 +666,7 @@ public class MainActivity extends Activity {
         root.addView(timer, fullWidth(dp(44)));
 
         String aiText = activeAiReply.isEmpty()
-                ? (activeCallId.isEmpty() ? activeContact.persona : "AI cevabi bekleniyor...")
+                ? (activeCallId.isEmpty() ? shortStatus(backendStatus.isEmpty() ? "AI oturumu hazırlanıyor..." : backendStatus) : "AI cevabi bekleniyor...")
                 : activeAiReply;
         TextView line = text(aiText, 14, subText, false);
         line.setGravity(Gravity.CENTER);
@@ -729,7 +733,7 @@ public class MainActivity extends Activity {
             @Override
             public void onError(String message) {
                 handler.post(() -> {
-                    activeAiReply = activeContact != null ? activeContact.persona : message;
+                    activeAiReply = shortStatus(message);
                     if (screen == Screen.IN_CALL) {
                         renderInCall();
                     }
@@ -751,6 +755,13 @@ public class MainActivity extends Activity {
         pendingInitialGreeting = false;
         initialGreetingRequested = true;
         requestAiReply("Arama yeni acildi. Telefonda ilk sozu sen soyluyorsun. 'Alo, merhaba' diye basla, kendini kisaca tanit ve kullaniciyi dinledigini soyle.");
+    }
+
+    private String shortStatus(String value) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        return value.length() <= 92 ? value : value.substring(0, 89) + "...";
     }
 
     private View callControl(String label, boolean dark, Runnable action) {

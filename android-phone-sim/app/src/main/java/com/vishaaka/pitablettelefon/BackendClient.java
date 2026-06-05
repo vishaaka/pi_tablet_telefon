@@ -1,6 +1,7 @@
 package com.vishaaka.pitablettelefon;
 
 import android.graphics.Color;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 final class BackendClient {
+    private static final String TAG = "PiTelefonBackend";
     interface ContactsCallback {
         void onResult(List<Contact> contacts, String baseUrl);
 
@@ -36,6 +38,7 @@ final class BackendClient {
     private static final String[] BASE_URLS = {
             "http://192.168.240.1:8080",
             "http://192.168.240.112:8080",
+            "http://192.168.1.22:8080",
             "http://127.0.0.1:8080",
             "http://10.0.2.2:8080"
     };
@@ -65,10 +68,11 @@ final class BackendClient {
                     callback.onResult(contacts, baseUrl);
                     return;
                 } catch (Exception error) {
+                    Log.w(TAG, "contacts failed for " + baseUrl + ": " + error);
                     lastError = error;
                 }
             }
-            callback.onError(lastError == null ? "Backend bulunamadi" : lastError.getMessage());
+            callback.onError(errorMessage("Backend bulunamadi", lastError));
         }).start();
     }
 
@@ -88,10 +92,11 @@ final class BackendClient {
                     callback.onResult(response.optString("call_id", ""), baseUrl);
                     return;
                 } catch (Exception error) {
+                    Log.w(TAG, "startCall failed for " + baseUrl + ": " + error);
                     lastError = error;
                 }
             }
-            callback.onError(lastError == null ? "Arama backend'e gonderilemedi" : lastError.getMessage());
+            callback.onError(errorMessage("Arama backend'e gonderilemedi", lastError));
         }).start();
     }
 
@@ -118,10 +123,11 @@ final class BackendClient {
                     callback.onResult(response.optString("reply", ""), response.optString("provider", ""), audioUrl);
                     return;
                 } catch (Exception error) {
+                    Log.w(TAG, "sendMessage failed for " + baseUrl + ": " + error);
                     lastError = error;
                 }
             }
-            callback.onError(lastError == null ? "AI mesaji gonderilemedi" : lastError.getMessage());
+            callback.onError(errorMessage("AI mesaji gonderilemedi", lastError));
         }).start();
     }
 
@@ -158,9 +164,16 @@ final class BackendClient {
     private HttpURLConnection open(String url, String method) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setRequestMethod(method);
-        connection.setConnectTimeout(800);
-        connection.setReadTimeout(1200);
+        connection.setConnectTimeout(3500);
+        connection.setReadTimeout(5000);
         return connection;
+    }
+
+    private String errorMessage(String title, Exception error) {
+        if (error == null) {
+            return title;
+        }
+        return title + ": " + error.getClass().getSimpleName() + " " + error.getMessage();
     }
 
     private String read(HttpURLConnection connection) throws Exception {
