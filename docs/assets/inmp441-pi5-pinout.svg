@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="900" viewBox="0 0 1100 900">
+  <rect width="1100" height="900" fill="#f7f7f9"/>
+  <text x="40" y="48" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#111">Raspberry Pi 5 -> MAX98357A + INMP441 I2S Wiring</text>
+  <text x="40" y="82" font-family="Arial, sans-serif" font-size="17" fill="#555">Physical pin numbers are shown. MAX98357A and INMP441 share BCLK and LRC. INMP441 uses GPIO20 as input data.</text>
+
+  <rect x="50" y="120" width="470" height="720" rx="16" fill="#ffffff" stroke="#d2d2d8"/>
+  <text x="80" y="158" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#111">Raspberry Pi 40-pin header</text>
+
+  <g font-family="Arial, sans-serif" font-size="13" fill="#333" text-anchor="middle">
+    <circle cx="130" cy="220" r="14" fill="#7b61ff" stroke="#4336a8"/><text x="130" y="225" fill="#fff">1</text>
+    <circle cx="370" cy="220" r="14" fill="#e85050" stroke="#9c2020"/><text x="370" y="225" fill="#fff">2</text>
+    <circle cx="130" cy="250" r="14" fill="#ddd" stroke="#999"/><text x="130" y="255">3</text>
+    <circle cx="370" cy="250" r="14" fill="#e85050" stroke="#9c2020"/><text x="370" y="255" fill="#fff">4</text>
+    <circle cx="130" cy="280" r="14" fill="#ddd" stroke="#999"/><text x="130" y="285">5</text>
+    <circle cx="370" cy="280" r="14" fill="#333" stroke="#111"/><text x="370" y="285" fill="#fff">6</text>
+    <circle cx="130" cy="310" r="14" fill="#ddd" stroke="#999"/><text x="130" y="315">7</text>
+    <circle cx="370" cy="310" r="14" fill="#ddd" stroke="#999"/><text x="370" y="315">8</text>
+    <circle cx="130" cy="340" r="14" fill="#ddd" stroke="#999"/><text x="130" y="345">9</text>
+    <circle cx="370" cy="340" r="14" fill="#ddd" stroke="#999"/><text x="370" y="345">10</text>
+    <circle cx="130" cy="370" r="14" fill="#ddd" stroke="#999"/><text x="130" y="375">11</text>
+    <circle cx="370" cy="370" r="14" fill="#2d7ff9" stroke="#174a9b"/><text x="370" y="375" fill="#fff">12</text>
+    <circle cx="130" cy="400" r="14" fill="#ddd" stroke="#999"/><text x="130" y="405">13</text>
+    <circle cx="370" cy="400" r="14" fill="#ddd" stroke="#999"/><text x="370" y="405">14</text>
+    <circle cx="130" cy="430" r="14" fill="#ddd" stroke="#999"/><text x="130" y="435">15</text>
+    <circle cx="370" cy="430" r="14" fill="#ddd" stroke="#999"/><text x="370" y="435">16</text>
+    <circle cx="130" cy="460" r="14" fill="#7b61ff" stroke="#4336a8"/><text x="130" y="465" fill="#fff">17</text>
+    <circle cx="370" cy="460" r="14" fill="#ddd" stroke="#999"/><text x="370" y="465">18</text>
+    <circle cx="130" cy="490" r="14" fill="#ddd" stroke="#999"/><text x="130" y="495">19</text>
+    <circle cx="370" cy="490" r="14" fill="#ddd" stroke="#999"/><text x="370" y="495">20</text>
+    <circle cx="130" cy="520" r="14" fill="#ddd" stroke="#999"/><text x="130" y="525">21</text>
+    <circle cx="370" cy="520" r="14" fill="#ddd" stroke="#999"/><text x="370" y="525">22</text>
+    <circle cx="130" cy="550" r="14" fill="#ddd" stroke="#999"/><text x="130" y="555">23</text>
+    <circle cx="370" cy="550" r="14" fill="#ddd" stroke="#999"/><text x="370" y="555">24</text>
+    <circle cx="130" cy="580" r="14" fill="#ddd" stroke="#999"/><text x="130" y="585">25</text>
+    <circle cx="370" cy="580" r="14" fill="#ddd" stroke="#999"/><text x="370" y="585">26</text>
+    <circle cx="130" cy="610" r="14" fill="#ddd" stroke="#999"/><text x="130" y="615">27</text>
+    <circle cx="370" cy="610" r="14" fill="#ddd" stroke="#999"/><text x="370" y="615">28</text>
+    <circle cx="130" cy="640" r="14" fill="#ddd" stroke="#999"/><text x="130" y="645">29</text>
+    <circle cx="370" cy="640" r="14" fill="#ddd" stroke="#999"/><text x="370" y="645">30</text>
+    <circle cx="130" cy="670" r="14" fill="#ddd" stroke="#999"/><text x="130" y="675">31</text>
+    <circle cx="370" cy="670" r="14" fill="#ddd" stroke="#999"/><text x="370" y="675">32</text>
+    <circle cx="130" cy="700" r="14" fill="#ddd" stroke="#999"/><text x="130" y="705">33</text>
+    <circle cx="370" cy="700" r="14" fill="#ddd" stroke="#999"/><text x="370" y="705">34</text>
+    <circle cx="130" cy="730" r="14" fill="#20a66b" stroke="#126540"/><text x="130" y="735" fill="#fff">35</text>
+    <circle cx="370" cy="730" r="14" fill="#ddd" stroke="#999"/><text x="370" y="735">36</text>
+    <circle cx="130" cy="760" r="14" fill="#ddd" stroke="#999"/><text x="130" y="765">37</text>
+    <circle cx="370" cy="760" r="14" fill="#d94ec9" stroke="#7b1872"/><text x="370" y="765" fill="#fff">38</text>
+    <circle cx="130" cy="790" r="14" fill="#333" stroke="#111"/><text x="130" y="795" fill="#fff">39</text>
+    <circle cx="370" cy="790" r="14" fill="#f39b2f" stroke="#9a5a11"/><text x="370" y="795" fill="#fff">40</text>
+  </g>
+
+  <g font-family="Arial, sans-serif" font-size="14" fill="#333">
+    <text x="392" y="225" fill="#b02020">5V to MAX VIN</text>
+    <text x="152" y="225" fill="#4336a8">3V3 to INMP441 VDD</text>
+    <text x="392" y="285" fill="#111">GND shared</text>
+    <text x="392" y="375" fill="#174a9b">GPIO18 / BCLK shared</text>
+    <text x="152" y="735" fill="#126540">GPIO19 / LRC shared</text>
+    <text x="392" y="765" fill="#7b1872">GPIO20 / PCM_DIN / INMP441 SD</text>
+    <text x="392" y="795" fill="#9a5a11">GPIO21 / PCM_DOUT / MAX DIN</text>
+  </g>
+
+  <rect x="610" y="165" width="410" height="245" rx="18" fill="#ffffff" stroke="#d2d2d8"/>
+  <text x="650" y="210" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#111">INMP441 Microphone</text>
+  <g font-family="Arial, sans-serif" font-size="17" fill="#111">
+    <text x="650" y="250">VDD -> Pi pin 1 or 17 (3V3 only)</text>
+    <text x="650" y="280">GND -> Pi pin 6 or 39</text>
+    <text x="650" y="310">SCK/BCLK -> Pi pin 12</text>
+    <text x="650" y="340">WS/LRCLK -> Pi pin 35</text>
+    <text x="650" y="370">SD/DOUT -> Pi pin 38</text>
+    <text x="650" y="400">L/R -> GND for left channel</text>
+  </g>
+
+  <rect x="610" y="475" width="410" height="180" rx="18" fill="#ffffff" stroke="#d2d2d8"/>
+  <text x="650" y="520" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#111">MAX98357A Speaker</text>
+  <g font-family="Arial, sans-serif" font-size="17" fill="#111">
+    <text x="650" y="560">VIN -> Pi pin 2 or 4 (5V)</text>
+    <text x="650" y="590">GND -> Pi pin 6 or 39</text>
+    <text x="650" y="620">BCLK -> Pi pin 12</text>
+    <text x="650" y="650">LRC -> Pi pin 35, DIN -> Pi pin 40</text>
+  </g>
+
+  <rect x="610" y="700" width="410" height="105" rx="14" fill="#fff7e8" stroke="#e6c27a"/>
+  <text x="635" y="735" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#111">Important</text>
+  <text x="635" y="765" font-family="Arial, sans-serif" font-size="16" fill="#333">INMP441 is 3.3V. Do not connect VDD to 5V.</text>
+  <text x="635" y="790" font-family="Arial, sans-serif" font-size="16" fill="#333">MAX and INMP441 share clocks but use separate data pins.</text>
+</svg>

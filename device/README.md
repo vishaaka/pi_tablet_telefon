@@ -33,6 +33,18 @@ bash device/scripts/check-max98357a.sh
 
 Ayrinti: `docs/max98357a-audio-output.md`
 
+## INMP441 I2S Mikrofon
+
+INMP441'i mikrofon girisi olarak denemek icin:
+
+```bash
+bash device/scripts/setup-inmp441-googlevoicehat-experimental.sh
+sudo reboot
+bash device/scripts/check-inmp441.sh
+```
+
+Ayrinti: `docs/inmp441-i2s-mic.md`
+
 ## Backend Servisi
 
 Servisi mevcut kullanici ve repo konumuna gore otomatik olusturmak icin:
