@@ -11,13 +11,25 @@ MAX98357A I2S         -> hoparlor cikisi
 
 ## Baglanti
 
+![MAX98357A Raspberry Pi 5 pinout](assets/max98357a-pi5-pinout.svg)
+
 MAX98357A pinleri:
 
-- `VIN` -> Raspberry Pi `5V`
-- `GND` -> Raspberry Pi `GND`
-- `BCLK` -> GPIO18 / PCM_CLK
-- `LRC` veya `LRCLK` -> GPIO19 / PCM_FS
-- `DIN` -> GPIO21 / PCM_DOUT
+- `VIN` -> Raspberry Pi physical pin `2` veya `4` (`5V`)
+- `GND` -> Raspberry Pi physical pin `6` (`GND`)
+- `BCLK` -> Raspberry Pi physical pin `12` (`GPIO18` / `PCM_CLK`)
+- `LRC` veya `LRCLK` -> Raspberry Pi physical pin `35` (`GPIO19` / `PCM_FS`)
+- `DIN` -> Raspberry Pi physical pin `40` (`GPIO21` / `PCM_DOUT`)
+
+Kisa tablo:
+
+| MAX98357A | Raspberry Pi physical pin | GPIO / islev |
+| --- | ---: | --- |
+| `VIN` | `2` veya `4` | `5V` |
+| `GND` | `6` | `GND` |
+| `BCLK` | `12` | `GPIO18 / PCM_CLK` |
+| `LRC` | `35` | `GPIO19 / PCM_FS` |
+| `DIN` | `40` | `GPIO21 / PCM_DOUT` |
 
 Opsiyonel:
 
