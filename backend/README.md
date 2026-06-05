@@ -70,6 +70,15 @@ export PI_TTS_AUDIO_BOOST=true
 export PI_TTS_GAIN_DB=8
 ```
 
+## Sesli Giris
+
+Arama icinde `POST /calls/{call_id}/listen` endpoint'i host mikrofonundan kisa kayit alir, WAV dosyasini Gemini'ye gonderir ve cevabi TTS olarak dondurur.
+
+```bash
+export PI_MIC_DEVICE=plughw:2,0
+export PI_MIC_RATE=16000
+```
+
 ## Hailo Notu
 
 Hailo islemleri Android/Waydroid icinde degil, bu host servis tarafinda yapilacak. Ileride kamera goruntusu veya vision pipeline eklendiginde HailoRT kullanan modul `app/hailo_runtime.py` icinde gelistirilecek.

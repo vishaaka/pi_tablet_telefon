@@ -131,6 +131,34 @@ final class BackendClient {
         }).start();
     }
 
+    void listenAndReply(String callId, MessageCallback callback) {
+        new Thread(() -> {
+            if (callId == null || callId.isEmpty()) {
+                callback.onError("Aktif AI oturumu yok");
+                return;
+            }
+
+            Exception lastError = null;
+            for (String baseUrl : candidateUrls()) {
+                try {
+                    String body = post(baseUrl + "/calls/" + callId + "/listen", "{}");
+                    JSONObject response = new JSONObject(body);
+                    workingBaseUrl = baseUrl;
+                    String audioUrl = response.optString("audio_url", "");
+                    if (!audioUrl.isEmpty() && audioUrl.startsWith("/")) {
+                        audioUrl = baseUrl + audioUrl;
+                    }
+                    callback.onResult(response.optString("reply", ""), response.optString("provider", ""), audioUrl);
+                    return;
+                } catch (Exception error) {
+                    Log.w(TAG, "listenAndReply failed for " + baseUrl + ": " + error);
+                    lastError = error;
+                }
+            }
+            callback.onError(errorMessage("Ses AI'ya gonderilemedi", lastError));
+        }).start();
+    }
+
     private List<String> candidateUrls() {
         List<String> urls = new ArrayList<>();
         if (workingBaseUrl != null && !workingBaseUrl.isEmpty()) {
@@ -165,7 +193,7 @@ final class BackendClient {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setRequestMethod(method);
         connection.setConnectTimeout(3500);
-        connection.setReadTimeout(5000);
+        connection.setReadTimeout(70000);
         return connection;
     }
 

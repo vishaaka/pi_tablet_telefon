@@ -697,7 +697,7 @@ public class MainActivity extends Activity {
         LinearLayout bottom = new LinearLayout(this);
         bottom.setGravity(Gravity.CENTER);
         bottom.setPadding(0, dp(10), 0, 0);
-        bottom.addView(callControl("AI Yanıt", dark, () -> requestAiReply("Devam et, seni dinliyorum.")));
+        bottom.addView(callControl("Konuş", dark, this::requestVoiceReply));
 
         TextView end = text("Kapat", 17, Color.WHITE, true);
         end.setGravity(Gravity.CENTER);
@@ -719,6 +719,39 @@ public class MainActivity extends Activity {
         activeAiReply = "AI yazıyor...";
         renderInCall();
         backendClient.sendMessage(activeCallId, text, new BackendClient.MessageCallback() {
+            @Override
+            public void onResult(String reply, String provider, String audioUrl) {
+                handler.post(() -> {
+                    activeAiReply = reply;
+                    playTtsAudio(audioUrl);
+                    if (screen == Screen.IN_CALL) {
+                        renderInCall();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                handler.post(() -> {
+                    activeAiReply = shortStatus(message);
+                    if (screen == Screen.IN_CALL) {
+                        renderInCall();
+                    }
+                });
+            }
+        });
+    }
+
+    private void requestVoiceReply() {
+        if (activeCallId.isEmpty()) {
+            activeAiReply = "AI oturumu hazırlanıyor...";
+            renderInCall();
+            return;
+        }
+
+        activeAiReply = "Dinliyorum... 5 sn konuş";
+        renderInCall();
+        backendClient.listenAndReply(activeCallId, new BackendClient.MessageCallback() {
             @Override
             public void onResult(String reply, String provider, String audioUrl) {
                 handler.post(() -> {
