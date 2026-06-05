@@ -98,10 +98,17 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         configureWindow();
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        boostAppAudio();
         seedContacts();
         seedRecentCalls();
         showDialer();
         refreshContactsFromBackend();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        boostAppAudio();
     }
 
     @Override
@@ -120,6 +127,25 @@ public class MainActivity extends Activity {
         window.getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         );
+    }
+
+    private void boostAppAudio() {
+        AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        if (audioManager == null) {
+            return;
+        }
+        int[] streams = {
+                AudioManager.STREAM_MUSIC,
+                AudioManager.STREAM_RING,
+                AudioManager.STREAM_VOICE_CALL
+        };
+        for (int stream : streams) {
+            try {
+                audioManager.setStreamMute(stream, false);
+                audioManager.setStreamVolume(stream, audioManager.getStreamMaxVolume(stream), 0);
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     private void seedContacts() {

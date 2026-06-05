@@ -1,5 +1,6 @@
 import os
 import shutil
+import subprocess
 import time
 import urllib.request
 from dataclasses import dataclass
@@ -78,6 +79,7 @@ def _hf_space_tts(call_id: str, contact: Contact, text: str) -> TtsResult:
     else:
         shutil.copyfile(str(source), target)
 
+    _boost_audio_file(target)
     return TtsResult(audio_url=f"/audio/{target.name}", provider="hf_space")
 
 
@@ -110,3 +112,32 @@ def _find_audio_source(value: Any) -> str | None:
             if found:
                 return found
     return None
+
+
+def _boost_audio_file(path: Path) -> None:
+    if os.getenv("PI_TTS_AUDIO_BOOST", "true").strip().lower() not in {"1", "true", "yes", "on"}:
+        return
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        return
+
+    gain_db = os.getenv("PI_TTS_GAIN_DB", "8").strip()
+    temp = path.with_name(f"{path.stem}.boost{path.suffix}")
+    command = [
+        ffmpeg,
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        str(path),
+        "-af",
+        f"volume={gain_db}dB,alimiter=limit=0.95",
+        str(temp),
+    ]
+    try:
+        subprocess.run(command, check=True, timeout=45)
+        temp.replace(path)
+    except Exception:
+        if temp.exists():
+            temp.unlink(missing_ok=True)

@@ -63,6 +63,13 @@ export HF_TTS_API_NAME=/tts_interface
 
 Kisilerin `tts_voice`, `tts_rate` ve `tts_pitch` alanlari farkli sesleri belirler. Uretilen dosyalar `/audio/...` URL'si ile servis edilir.
 
+TTS dosyalari `ffmpeg` varsa varsayilan olarak yukseltilir ve limiter'dan gecer. Seviyeyi ayarlamak icin:
+
+```bash
+export PI_TTS_AUDIO_BOOST=true
+export PI_TTS_GAIN_DB=8
+```
+
 ## Hailo Notu
 
 Hailo islemleri Android/Waydroid icinde degil, bu host servis tarafinda yapilacak. Ileride kamera goruntusu veya vision pipeline eklendiginde HailoRT kullanan modul `app/hailo_runtime.py` icinde gelistirilecek.
