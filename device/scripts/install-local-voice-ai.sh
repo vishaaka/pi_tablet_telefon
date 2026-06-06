@@ -8,6 +8,7 @@ SERVICE_FILE="/etc/systemd/system/pi-tablet-local-ai.service"
 BACKEND_DROPIN="/etc/systemd/system/pi-tablet-backend.service.d/local-ai.conf"
 RUN_USER="${SUDO_USER:-$USER}"
 RUN_HOME="$(getent passwd "$RUN_USER" | cut -d: -f6)"
+BUILD_JOBS="${PI_LOCAL_AI_BUILD_JOBS:-1}"
 
 sudo apt update
 sudo apt install -y build-essential cmake git curl libcurl4-openssl-dev
@@ -21,7 +22,7 @@ else
   git -C "$LLAMA_DIR" pull --ff-only
 fi
 cmake -S "$LLAMA_DIR" -B "$LLAMA_DIR/build" -DLLAMA_CURL=ON -DCMAKE_BUILD_TYPE=Release
-cmake --build "$LLAMA_DIR/build" --config Release -j3 --target llama-server
+cmake --build "$LLAMA_DIR/build" --config Release -j"$BUILD_JOBS" --target llama-server
 
 if [ ! -d "$WHISPER_DIR/.git" ]; then
   git clone --depth 1 https://github.com/ggml-org/whisper.cpp.git "$WHISPER_DIR"
@@ -29,7 +30,7 @@ else
   git -C "$WHISPER_DIR" pull --ff-only
 fi
 cmake -S "$WHISPER_DIR" -B "$WHISPER_DIR/build" -DCMAKE_BUILD_TYPE=Release
-cmake --build "$WHISPER_DIR/build" --config Release -j3 --target whisper-cli
+cmake --build "$WHISPER_DIR/build" --config Release -j"$BUILD_JOBS" --target whisper-cli
 if [ ! -f "$WHISPER_DIR/models/ggml-tiny.bin" ]; then
   bash "$WHISPER_DIR/models/download-ggml-model.sh" tiny
 fi
