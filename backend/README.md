@@ -70,15 +70,28 @@ export PI_TTS_AUDIO_BOOST=true
 export PI_TTS_GAIN_DB=8
 ```
 
+## Otomatik Yerel Sesli Gorusme
+
+Token veya internet gerektirmeyen hizli Turkce gorusme icin `whisper.cpp` ve `llama.cpp` tabanli yerel servis kurulabilir:
+
+```bash
+cd ~/pi_tablet_telefon
+bash device/scripts/install-local-voice-ai.sh
+bash device/scripts/check-local-voice-ai.sh
+```
+
+Varsayilan yerel model `Qwen/Qwen3-0.6B-GGUF:Q8_0`, konusma tanima modeli ise Whisper Tiny multilingual modelidir. Android uygulamasi AI cevabinin sesi bittikten iki saniye sonra otomatik dinlemeye baslar. Insan sesi algilandiktan sonra konusma devam ettigi surece kayit devam eder ve iki saniyelik sessizlikte cevap uretilir.
+
 ## Sesli Giris
 
-Arama icinde `POST /calls/{call_id}/listen` endpoint'i host mikrofonundan kisa kayit alir, WAV dosyasini Gemini'ye gonderir ve cevabi TTS olarak dondurur.
+Arama icinde `POST /calls/{call_id}/listen` endpoint'i host mikrofonunda insan sesi baslangicini bekler, konusmayi kaydeder ve aktif AI saglayicisina gonderir.
 
 ```bash
 export PI_MIC_DEVICE=plughw:2,0
 export PI_MIC_RATE=16000
-export PI_MIC_WAIT_SECONDS=6
-export PI_MIC_MAX_SECONDS=7
+export PI_MIC_WAIT_SECONDS=30
+export PI_MIC_MAX_SECONDS=30
+export PI_MIC_SILENCE_SECONDS=2.0
 export PI_MIC_START_THRESHOLD=700
 export PI_MIC_SILENCE_THRESHOLD=420
 ```

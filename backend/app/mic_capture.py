@@ -9,20 +9,20 @@ from pathlib import Path
 RECORDING_DIR = Path(__file__).resolve().parents[1] / "recordings"
 
 
-def capture_call_audio(call_id: str, seconds: int = 7) -> Path:
+def capture_call_audio(call_id: str, seconds: int = 30) -> Path:
     RECORDING_DIR.mkdir(parents=True, exist_ok=True)
     target = RECORDING_DIR / f"{int(time.time())}_{call_id[:8]}.wav"
     device = os.getenv("PI_MIC_DEVICE", "plughw:2,0")
     rate = int(os.getenv("PI_MIC_RATE", "16000"))
-    wait_seconds = float(os.getenv("PI_MIC_WAIT_SECONDS", "6"))
+    wait_seconds = float(os.getenv("PI_MIC_WAIT_SECONDS", "30"))
     max_seconds = float(os.getenv("PI_MIC_MAX_SECONDS", str(seconds)))
     min_seconds = float(os.getenv("PI_MIC_MIN_SECONDS", "0.8"))
-    silence_seconds = float(os.getenv("PI_MIC_SILENCE_SECONDS", "0.9"))
+    silence_seconds = float(os.getenv("PI_MIC_SILENCE_SECONDS", "2.0"))
     start_threshold = int(os.getenv("PI_MIC_START_THRESHOLD", "700"))
     silence_threshold = int(os.getenv("PI_MIC_SILENCE_THRESHOLD", "420"))
     chunk_ms = int(os.getenv("PI_MIC_CHUNK_MS", "100"))
     chunk_bytes = int(rate * 2 * chunk_ms / 1000)
-    preroll_chunks = max(1, int(300 / chunk_ms))
+    preroll_chunks = max(1, int(500 / chunk_ms))
 
     command = [
         "arecord",

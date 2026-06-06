@@ -59,6 +59,8 @@ public class MainActivity extends Activity {
     private boolean video = false;
     private boolean initialGreetingRequested = false;
     private boolean pendingInitialGreeting = false;
+    private boolean autoConversationActive = true;
+    private boolean voiceRequestInFlight = false;
     private Screen screen = Screen.DIALER;
 
     private final Runnable ringLoop = new Runnable() {
@@ -555,6 +557,8 @@ public class MainActivity extends Activity {
         video = false;
         initialGreetingRequested = false;
         pendingInitialGreeting = false;
+        autoConversationActive = true;
+        voiceRequestInFlight = false;
         screen = Screen.RINGING;
         renderRinging("Aranıyor", "Bağlantı hazırlanıyor...");
 
@@ -683,6 +687,9 @@ public class MainActivity extends Activity {
         top.addView(callControl(muted ? "Mik. Aç" : "Sessiz", dark, () -> {
             muted = !muted;
             renderInCall();
+            if (!muted) {
+                scheduleAutoListen();
+            }
         }));
         top.addView(callControl(speaker ? "Ahize" : "Hoparlör", dark, () -> {
             speaker = !speaker;
@@ -697,7 +704,14 @@ public class MainActivity extends Activity {
         LinearLayout bottom = new LinearLayout(this);
         bottom.setGravity(Gravity.CENTER);
         bottom.setPadding(0, dp(10), 0, 0);
-        bottom.addView(callControl("Konuş", dark, this::requestVoiceReply));
+        bottom.addView(callControl(autoConversationActive ? "Otomatik açık" : "Otomatik kapalı", dark, () -> {
+            autoConversationActive = !autoConversationActive;
+            activeAiReply = autoConversationActive ? "Otomatik dinleme açıldı" : "Otomatik dinleme duraklatıldı";
+            renderInCall();
+            if (autoConversationActive) {
+                scheduleAutoListen();
+            }
+        }));
 
         TextView end = text("Kapat", 17, Color.WHITE, true);
         end.setGravity(Gravity.CENTER);
@@ -723,7 +737,7 @@ public class MainActivity extends Activity {
             public void onResult(String reply, String provider, String audioUrl) {
                 handler.post(() -> {
                     activeAiReply = reply;
-                    playTtsAudio(audioUrl);
+                    playTtsAudio(audioUrl, MainActivity.this::scheduleAutoListen);
                     if (screen == Screen.IN_CALL) {
                         renderInCall();
                     }
@@ -737,43 +751,71 @@ public class MainActivity extends Activity {
                     if (screen == Screen.IN_CALL) {
                         renderInCall();
                     }
+                    scheduleAutoListen();
                 });
             }
         });
     }
 
     private void requestVoiceReply() {
+        if (!autoConversationActive || muted || voiceRequestInFlight || screen != Screen.IN_CALL) {
+            return;
+        }
         if (activeCallId.isEmpty()) {
             activeAiReply = "AI oturumu hazırlanıyor...";
             renderInCall();
+            scheduleAutoListen();
             return;
         }
 
-        activeAiReply = "Hazır... konuşunca dinleyeceğim";
+        voiceRequestInFlight = true;
+        activeAiReply = "Dinliyorum...";
         renderInCall();
         backendClient.listenAndReply(activeCallId, new BackendClient.MessageCallback() {
             @Override
             public void onResult(String reply, String provider, String audioUrl) {
                 handler.post(() -> {
-                    activeAiReply = reply;
-                    playTtsAudio(audioUrl);
-                    if (screen == Screen.IN_CALL) {
-                        renderInCall();
+                    voiceRequestInFlight = false;
+                    if (screen != Screen.IN_CALL) {
+                        return;
                     }
+                    activeAiReply = reply;
+                    playTtsAudio(audioUrl, MainActivity.this::scheduleAutoListen);
+                    renderInCall();
                 });
             }
 
             @Override
             public void onError(String message) {
                 handler.post(() -> {
-                    activeAiReply = shortStatus(message);
-                    if (screen == Screen.IN_CALL) {
-                        renderInCall();
+                    voiceRequestInFlight = false;
+                    if (screen != Screen.IN_CALL) {
+                        return;
                     }
+                    activeAiReply = shortStatus(message);
+                    renderInCall();
+                    scheduleAutoListen();
                 });
             }
         });
     }
+
+    private void scheduleAutoListen() {
+        handler.removeCallbacks(autoListen);
+        if (!autoConversationActive || muted || screen != Screen.IN_CALL) {
+            return;
+        }
+        activeAiReply = "2 saniye sonra dinleyeceğim...";
+        renderInCall();
+        handler.postDelayed(autoListen, 2000);
+    }
+
+    private final Runnable autoListen = new Runnable() {
+        @Override
+        public void run() {
+            requestVoiceReply();
+        }
+    };
 
     private void requestInitialGreeting() {
         if (initialGreetingRequested) {
@@ -809,6 +851,10 @@ public class MainActivity extends Activity {
     }
 
     private void endCall() {
+        autoConversationActive = false;
+        voiceRequestInFlight = false;
+        handler.removeCallbacks(autoListen);
+        stopTtsAudio();
         stopCallAudio();
         handler.removeCallbacks(autoAnswer);
         handler.removeCallbacks(callTimer);
@@ -909,8 +955,9 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void playTtsAudio(String audioUrl) {
+    private void playTtsAudio(String audioUrl, Runnable onComplete) {
         if (audioUrl == null || audioUrl.isEmpty()) {
+            onComplete.run();
             return;
         }
         stopTtsAudio();
@@ -920,14 +967,19 @@ public class MainActivity extends Activity {
             mediaPlayer.setDataSource(audioUrl);
             mediaPlayer.setVolume(1.0f, 1.0f);
             mediaPlayer.setOnPreparedListener(MediaPlayer::start);
-            mediaPlayer.setOnCompletionListener(player -> stopTtsAudio());
+            mediaPlayer.setOnCompletionListener(player -> {
+                stopTtsAudio();
+                onComplete.run();
+            });
             mediaPlayer.setOnErrorListener((player, what, extra) -> {
                 stopTtsAudio();
+                onComplete.run();
                 return true;
             });
             mediaPlayer.prepareAsync();
         } catch (Exception ignored) {
             stopTtsAudio();
+            onComplete.run();
         }
     }
 

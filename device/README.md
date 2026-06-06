@@ -68,3 +68,14 @@ Kontrol:
 systemctl status pi-tablet-phone-autostart --no-pager
 tail -n 80 ~/pi-tablet-phone-autostart.log
 ```
+
+## Yerel Turkce Sesli AI
+
+Whisper Tiny ile Turkce konusma tanima ve Qwen3 0.6B ile yerel cevap uretimi icin:
+
+```bash
+bash device/scripts/install-local-voice-ai.sh
+bash device/scripts/check-local-voice-ai.sh
+```
+
+Ilk kurulum kaynak kodlarini derler ve modelleri indirir; bu nedenle birkac dakika surebilir.

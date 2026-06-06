@@ -8,6 +8,7 @@ from .hailo_runtime import hailo_runtime
 from .mic_capture import capture_call_audio
 from .models import EndCallResponse, MessageRequest, MessageResponse, StartCallRequest, StartCallResponse
 from .personas import CONTACTS, find_contact
+from .stt_engine import stt_status
 from .tts_engine import AUDIO_DIR, synthesize_for_contact, tts_status
 
 app = FastAPI(title="Pi Tablet Telefon Backend", version="0.1.0")
@@ -22,6 +23,7 @@ def health() -> dict:
         "status": "ok",
         "hailo": hailo_runtime.status(),
         "ai": ai_status(),
+        "stt": stt_status(),
         "tts": tts_status(),
     }
 
@@ -68,13 +70,13 @@ def listen_and_reply(call_id: str) -> MessageResponse:
 
     session = active_calls[call_id]
     try:
-        audio_path = capture_call_audio(call_id, seconds=7)
+        audio_path = capture_call_audio(call_id, seconds=30)
     except Exception as error:
         raise HTTPException(status_code=500, detail=f"Microphone capture failed: {error}") from error
 
     prompt = "Kullanicinin az once soyledigine cevap ver."
-    session.history.append({"role": "user", "content": "[sesli mesaj]"})
     ai_reply = generate_reply_from_audio(session, str(audio_path), prompt)
+    session.history.append({"role": "user", "content": ai_reply.transcript or "[sesli mesaj]"})
     session.history.append({"role": "assistant", "content": ai_reply.text})
     tts = synthesize_for_contact(call_id, session.contact, ai_reply.text)
     video_hint = "avatar_idle_talking" if session.contact.video_enabled else None

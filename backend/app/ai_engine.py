@@ -29,6 +29,7 @@ class CallSession:
 class AiReply:
     text: str
     provider: str
+    transcript: str | None = None
 
 
 def ai_status() -> dict:
@@ -42,6 +43,12 @@ def ai_status() -> dict:
 
 def generate_reply(session: CallSession, user_text: str) -> AiReply:
     provider = os.getenv("PI_AI_PROVIDER", "local").strip().lower()
+    if provider == "llama_cpp":
+        try:
+            return _llama_cpp_reply(session, user_text)
+        except Exception:
+            return AiReply(text=_local_reply(session.contact, user_text), provider="local-fallback")
+
     if provider == "gemini" and os.getenv("GEMINI_API_KEY"):
         try:
             return _gemini_reply(session, user_text)
@@ -65,7 +72,15 @@ def generate_reply_from_audio(session: CallSession, audio_path: str, prompt_text
         except Exception as error:
             return AiReply(text=_local_reply(session.contact, "", f"Sesli AI hatasi: {error}"), provider="local-fallback")
 
-    return AiReply(text=_local_reply(session.contact, "", "Sesli giris icin Gemini gerekli."), provider="local")
+    try:
+        from .stt_engine import transcribe_audio
+
+        transcript = transcribe_audio(audio_path)
+        reply = generate_reply(session, transcript)
+        reply.transcript = transcript
+        return reply
+    except Exception:
+        return AiReply(text="Seni tam duyamadım. Biraz daha yakından tekrar söyler misin?", provider="local-fallback")
 
 
 def _provider_configured(provider: str) -> bool:
@@ -74,13 +89,32 @@ def _provider_configured(provider: str) -> bool:
         return bool(os.getenv("OPENAI_API_KEY"))
     if provider == "gemini":
         return bool(os.getenv("GEMINI_API_KEY"))
+    if provider == "llama_cpp":
+        return True
     return True
+
+
+def _llama_cpp_reply(session: CallSession, user_text: str) -> AiReply:
+    base_url = os.getenv("PI_AI_API_BASE", "http://127.0.0.1:8081/v1").rstrip("/")
+    model = os.getenv("PI_AI_MODEL", "Qwen/Qwen3-0.6B-GGUF:Q8_0")
+    return _openai_compatible_reply(session, user_text, base_url, model, None, "llama_cpp")
 
 
 def _openai_reply(session: CallSession, user_text: str) -> AiReply:
     api_key = os.environ["OPENAI_API_KEY"]
     base_url = os.getenv("PI_AI_API_BASE", "https://api.openai.com/v1").rstrip("/")
     model = os.getenv("PI_AI_MODEL", "gpt-4o-mini")
+    return _openai_compatible_reply(session, user_text, base_url, model, api_key, "openai")
+
+
+def _openai_compatible_reply(
+    session: CallSession,
+    user_text: str,
+    base_url: str,
+    model: str,
+    api_key: str | None,
+    provider: str,
+) -> AiReply:
     url = f"{base_url}/chat/completions"
 
     system_prompt = session.contact.system_prompt or session.contact.persona
@@ -91,6 +125,7 @@ def _openai_reply(session: CallSession, user_text: str) -> AiReply:
                 system_prompt
                 + " Bu bir telefon gorusmesi simulasyonu. Gercek kisi oldugunu iddia etme; AI karakter olarak konus. "
                 + CHILD_SAFE_PROMPT
+                + " Yalnizca Turkce cevap ver. Dusunme metni yazma. /no_think"
             ),
         }
     ]
@@ -100,28 +135,29 @@ def _openai_reply(session: CallSession, user_text: str) -> AiReply:
     payload = {
         "model": model,
         "messages": messages,
-        "temperature": 0.7,
-        "max_tokens": 180,
+        "temperature": 0.65,
+        "max_tokens": 96,
+        "stream": False,
     }
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
     request = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
+        headers=headers,
         method="POST",
     )
 
     try:
-        with urllib.request.urlopen(request, timeout=45) as response:
+        with urllib.request.urlopen(request, timeout=float(os.getenv("PI_AI_TIMEOUT_SECONDS", "35"))) as response:
             data = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as error:
         body = error.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"HTTP {error.code}: {body[:240]}") from error
 
     reply = data["choices"][0]["message"]["content"].strip()
-    return AiReply(text=_clean_phone_reply(reply), provider="openai")
+    return AiReply(text=_clean_phone_reply(reply), provider=provider)
 
 
 def _gemini_reply(session: CallSession, user_text: str) -> AiReply:
@@ -260,22 +296,23 @@ def _gemini_audio_reply(session: CallSession, audio_path: str, prompt_text: str)
 
 def _clean_phone_reply(text: str) -> str:
     cleaned = " ".join(text.replace("\n", " ").split())
+    cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.IGNORECASE | re.DOTALL).strip()
     cleaned = re.sub(r"^[A-Za-zÇĞİÖŞÜçğıöşü0-9 _-]{1,32}:\s*", "", cleaned)
     if not cleaned:
         return "Seni dinliyorum."
 
     sentences = re.findall(r"[^.!?…]+[.!?…]", cleaned)
     if sentences:
-        cleaned = sentences[0].strip()
+        cleaned = " ".join(sentence.strip() for sentence in sentences[:2])
     else:
         words = cleaned.split()
-        cleaned = " ".join(words[:16]).rstrip(",;:")
+        cleaned = " ".join(words[:28]).rstrip(",;:")
         if cleaned and cleaned[-1] not in ".!?…":
             cleaned += "."
 
     words = cleaned.split()
-    if len(words) > 18:
-        cleaned = " ".join(words[:18]).rstrip(",;:") + "."
+    if len(words) > 34:
+        cleaned = " ".join(words[:34]).rstrip(",;:") + "."
     return cleaned
 
 
