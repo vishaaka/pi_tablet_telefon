@@ -33,16 +33,16 @@ class AiReply:
 
 
 def ai_status() -> dict:
-    provider = os.getenv("PI_AI_PROVIDER", "local")
+    provider = _ai_provider()
     return {
         "provider": provider,
-        "model": os.getenv("PI_AI_MODEL", "local-persona"),
+        "model": _ai_model("local-persona"),
         "configured": _provider_configured(provider),
     }
 
 
 def generate_reply(session: CallSession, user_text: str) -> AiReply:
-    provider = os.getenv("PI_AI_PROVIDER", "local").strip().lower()
+    provider = _ai_provider()
     if provider == "llama_cpp":
         try:
             return _llama_cpp_reply(session, user_text)
@@ -65,7 +65,7 @@ def generate_reply(session: CallSession, user_text: str) -> AiReply:
 
 
 def generate_reply_from_audio(session: CallSession, audio_path: str, prompt_text: str) -> AiReply:
-    provider = os.getenv("PI_AI_PROVIDER", "local").strip().lower()
+    provider = _ai_provider()
     if provider == "gemini" and os.getenv("GEMINI_API_KEY"):
         try:
             return _gemini_audio_reply(session, audio_path, prompt_text)
@@ -94,9 +94,21 @@ def _provider_configured(provider: str) -> bool:
     return True
 
 
+def _ai_provider() -> str:
+    return os.getenv("PI_AI_PROVIDER_OVERRIDE", os.getenv("PI_AI_PROVIDER", "local")).strip().lower()
+
+
+def _ai_model(default: str) -> str:
+    return os.getenv("PI_AI_MODEL_OVERRIDE", os.getenv("PI_AI_MODEL", default))
+
+
+def _ai_api_base(default: str) -> str:
+    return os.getenv("PI_AI_API_BASE_OVERRIDE", os.getenv("PI_AI_API_BASE", default)).rstrip("/")
+
+
 def _llama_cpp_reply(session: CallSession, user_text: str) -> AiReply:
-    base_url = os.getenv("PI_AI_API_BASE", "http://127.0.0.1:8081/v1").rstrip("/")
-    model = os.getenv("PI_AI_MODEL", "Qwen/Qwen3-0.6B-GGUF:Q8_0")
+    base_url = _ai_api_base("http://127.0.0.1:8081/v1")
+    model = _ai_model("Qwen/Qwen3-0.6B-GGUF:Q8_0")
     return _openai_compatible_reply(session, user_text, base_url, model, None, "llama_cpp")
 
 

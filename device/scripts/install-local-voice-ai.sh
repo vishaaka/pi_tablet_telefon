@@ -61,9 +61,9 @@ After=pi-tablet-local-ai.service
 Wants=pi-tablet-local-ai.service
 
 [Service]
-Environment=PI_AI_PROVIDER=llama_cpp
-Environment=PI_AI_API_BASE=http://127.0.0.1:8081/v1
-Environment=PI_AI_MODEL=Qwen/Qwen3-0.6B-GGUF:Q8_0
+Environment=PI_AI_PROVIDER_OVERRIDE=llama_cpp
+Environment=PI_AI_API_BASE_OVERRIDE=http://127.0.0.1:8081/v1
+Environment=PI_AI_MODEL_OVERRIDE=Qwen/Qwen3-0.6B-GGUF:Q8_0
 Environment=PI_AI_TIMEOUT_SECONDS=45
 Environment=PI_STT_COMMAND=$WHISPER_DIR/build/bin/whisper-cli
 Environment=PI_STT_MODEL=$WHISPER_DIR/models/ggml-tiny.bin
