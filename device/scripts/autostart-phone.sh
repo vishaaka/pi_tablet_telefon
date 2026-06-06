@@ -68,6 +68,19 @@ wait_for_waydroid() {
   return 1
 }
 
+wait_for_android() {
+  for _ in $(seq 1 120); do
+    if [ "$(sudo -n waydroid shell -- getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] &&
+      sudo -n waydroid shell -- dumpsys package android >/dev/null 2>&1; then
+      echo "android ready"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "android not ready"
+  return 1
+}
+
 ensure_apk_installed() {
   if sudo -n waydroid shell -- dumpsys package "$PKG" 2>/dev/null | grep -q "versionCode"; then
     echo "$PKG installed"
@@ -81,6 +94,18 @@ ensure_apk_installed() {
   waydroid app install "$APK_PATH"
 }
 
+launch_phone() {
+  for _ in $(seq 1 30); do
+    if waydroid app launch "$PKG"; then
+      echo "$PKG launched"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "could not launch $PKG"
+  return 1
+}
+
 wait_for_file "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" "wayland socket" 120
 wait_for_backend
 
@@ -90,8 +115,9 @@ wpctl get-volume @DEFAULT_AUDIO_SINK@ || true
 
 start_waydroid_session
 wait_for_waydroid
+wait_for_android
 ensure_apk_installed
 
 echo "launching $PKG"
-waydroid app launch "$PKG"
+launch_phone
 echo "autostart complete"
