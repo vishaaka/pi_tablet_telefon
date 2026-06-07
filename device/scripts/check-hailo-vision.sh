@@ -6,6 +6,13 @@ ASSET="${1:-/usr/share/rpi-camera-assets/hailo_yolov8_inference.json}"
 echo "== Hailo device =="
 lspci | grep -i hailo || true
 ls -l /dev/hailo* 2>/dev/null || true
+if [ ! -e /dev/hailo0 ]; then
+  echo "Hailo PCIe device node is missing."
+  echo "Repair for the current kernel:"
+  echo "sudo apt-get install --reinstall -y hailort-pcie-driver"
+  echo "sudo modprobe hailo_pci"
+  exit 1
+fi
 
 echo
 echo "== HailoRT =="
@@ -36,5 +43,18 @@ fi
 echo
 echo "== 5 second Hailo YOLO camera test =="
 echo "Using: $ASSET"
-timeout 8 rpicam-hello -t 5000 --nopreview --post-process-file "$ASSET"
+OUTPUT="$(mktemp)"
+trap 'rm -f "$OUTPUT"' EXIT
+if ! timeout 8 rpicam-hello -t 5000 --nopreview --post-process-file "$ASSET" 2>&1 | tee "$OUTPUT"; then
+  echo "Hailo camera test command failed."
+  exit 1
+fi
+if grep -q "HailoRT not ready" "$OUTPUT"; then
+  echo "HailoRT is not ready for camera inference."
+  exit 1
+fi
+if ! grep -q "Hailo device:" "$OUTPUT"; then
+  echo "Camera opened, but Hailo inference was not confirmed."
+  exit 1
+fi
 echo "Hailo vision test completed."

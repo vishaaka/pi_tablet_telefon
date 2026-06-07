@@ -31,6 +31,13 @@ Hailo-8/8L is not a drop-in accelerator for Python code, llama.cpp, Whisper, or 
 bash device/scripts/check-hailo-vision.sh
 ```
 
+If a kernel update leaves the PCIe device visible but removes `/dev/hailo0`, rebuild and reload the driver:
+
+```bash
+sudo apt-get install --reinstall -y hailort-pcie-driver
+sudo modprobe hailo_pci
+```
+
 4. Add a backend vision worker that consumes a camera stream and publishes:
 
 ```json
