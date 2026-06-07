@@ -6,6 +6,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 
+from .fast_chat import scripted_reply
 from .models import Contact
 
 
@@ -23,6 +24,7 @@ class CallSession:
     contact: Contact
     mode: str = "voice"
     history: list[dict[str, str]] = field(default_factory=list)
+    fast_turn: int = 0
 
 
 @dataclass
@@ -42,6 +44,11 @@ def ai_status() -> dict:
 
 
 def generate_reply(session: CallSession, user_text: str) -> AiReply:
+    if os.getenv("PI_FAST_CHAT_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}:
+        reply, _ = scripted_reply(session.contact, user_text, session.fast_turn)
+        session.fast_turn += 1
+        return AiReply(text=reply, provider="scripted")
+
     provider = _ai_provider()
     if provider == "llama_cpp":
         try:

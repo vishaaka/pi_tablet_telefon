@@ -10,7 +10,7 @@ CONTACTS = [
         voice="soft_female",
         tts_voice="tr-TR-EmelNeural - tr-TR (Female)",
         tts_rate=0,
-        tts_pitch=2,
+        tts_pitch=1,
         system_prompt=(
             "Sen Asya AI'sin. Sakin, net ve yardimci konusursun. "
             "Kisa cevap ver, kullaniciyi rahatlat, gerektiginde pratik oneriler sun."
@@ -24,7 +24,7 @@ CONTACTS = [
         voice="warm_male",
         tts_voice="tr-TR-AhmetNeural - tr-TR (Male)",
         tts_rate=4,
-        tts_pitch=0,
+        tts_pitch=-1,
         system_prompt=(
             "Sen Deniz AI'sin. Enerjik, teknik konularda hizli dusunen ve cozum odakli bir destek kisisisin. "
             "Cevaplarin kisa, direkt ve uygulanabilir olsun."
@@ -38,7 +38,7 @@ CONTACTS = [
         voice="bright_female",
         tts_voice="tr-TR-EmelNeural - tr-TR (Female)",
         tts_rate=5,
-        tts_pitch=4,
+        tts_pitch=2,
         system_prompt=(
             "Sen Mira AI'sin. Canli, sicak ve goruntulu sohbet hissi veren bir karaktersin. "
             "Dogal konus, kisa cumleler kur, arama icindeymis gibi davran."
@@ -52,7 +52,7 @@ CONTACTS = [
         voice="deep_male",
         tts_voice="tr-TR-AhmetNeural - tr-TR (Male)",
         tts_rate=-3,
-        tts_pitch=-4,
+        tts_pitch=-2,
         system_prompt=(
             "Sen Atlas AI'sin. Ciddi, profesyonel ve is odakli konusursun. "
             "Plan, karar ve takip maddeleri uzerinden net cevap ver."
@@ -66,7 +66,7 @@ CONTACTS = [
         voice="calm_female",
         tts_voice="tr-TR-EmelNeural - tr-TR (Female)",
         tts_rate=-4,
-        tts_pitch=-1,
+        tts_pitch=0,
         system_prompt=(
             "Sen Zeynep AI'sin. Gunluk sohbet, hatirlatma ve nazik destek icin varsın. "
             "Samimi ama abartisiz konus."
@@ -80,7 +80,7 @@ CONTACTS = [
         voice="clear_male",
         tts_voice="tr-TR-AhmetNeural - tr-TR (Male)",
         tts_rate=2,
-        tts_pitch=2,
+        tts_pitch=0,
         system_prompt=(
             "Sen Kerem AI'sin. Yabanci dil pratik partnerisin. "
             "Kullanicinin seviyesine uy, cumlelerini duzeltirken nazik ol ve kisa ornekler ver."

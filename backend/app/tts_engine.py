@@ -1,4 +1,5 @@
 import os
+import hashlib
 import shutil
 import subprocess
 import sys
@@ -24,6 +25,16 @@ class TtsResult:
 
 _hf_client = None
 _piper_lock = threading.Lock()
+VOICE_CACHE_VERSION = "v2"
+VOICE_PROFILES = {
+    "soft_female": {"pitch": 3, "tempo": 0.97, "filters": ["highpass=f=120", "equalizer=f=3000:t=q:w=1:g=2"]},
+    "warm_male": {"pitch": -4, "tempo": 1.04, "filters": ["equalizer=f=180:t=q:w=1:g=3", "equalizer=f=3200:t=q:w=1:g=-2"]},
+    "bright_female": {"pitch": 6, "tempo": 1.08, "filters": ["highpass=f=150", "equalizer=f=4200:t=q:w=1:g=4"]},
+    "deep_male": {"pitch": -7, "tempo": 0.92, "filters": ["equalizer=f=120:t=q:w=1:g=5", "equalizer=f=2800:t=q:w=1:g=-3"]},
+    "calm_female": {"pitch": 1, "tempo": 0.90, "filters": ["highpass=f=100", "equalizer=f=900:t=q:w=1:g=2"]},
+    "clear_male": {"pitch": -2, "tempo": 1.00, "filters": ["highpass=f=90", "equalizer=f=2500:t=q:w=1:g=4"]},
+    "default": {"pitch": 0, "tempo": 1.0, "filters": []},
+}
 
 
 def tts_status() -> dict:
@@ -99,9 +110,16 @@ def _hf_space_tts(call_id: str, contact: Contact, text: str) -> TtsResult:
 
 def _piper_tts(call_id: str, contact: Contact, text: str) -> TtsResult:
     AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    cache_key = hashlib.sha256(
+        f"{VOICE_CACHE_VERSION}|{contact.voice}|{contact.tts_rate}|{contact.tts_pitch}|{text}".encode("utf-8")
+    ).hexdigest()[:20]
+    cached_target = AUDIO_DIR / f"cache_{cache_key}.mp3"
+    if cached_target.is_file():
+        return TtsResult(audio_url=f"/audio/{cached_target.name}", provider="piper-cache")
+
     stem = f"{int(time.time())}_{call_id[:8]}"
     source = AUDIO_DIR / f"{stem}.piper.wav"
-    target = AUDIO_DIR / f"{stem}.mp3"
+    target = cached_target
     rate = max(-8, min(8, contact.tts_rate))
     model = os.getenv("PI_PIPER_MODEL", "/opt/pi-tablet-ai/piper/tr_TR-dfki-medium.onnx")
     command = [
@@ -120,21 +138,24 @@ def _piper_tts(call_id: str, contact: Contact, text: str) -> TtsResult:
         text[:900],
     ]
     with _piper_lock:
+        if target.is_file():
+            return TtsResult(audio_url=f"/audio/{target.name}", provider="piper-cache")
         try:
             subprocess.run(command, check=True, timeout=60)
-            _convert_piper_audio(source, target, contact.tts_pitch)
+            _convert_piper_audio(source, target, contact)
         finally:
             source.unlink(missing_ok=True)
     return TtsResult(audio_url=f"/audio/{target.name}", provider="piper")
 
 
-def _convert_piper_audio(source: Path, target: Path, pitch: int) -> None:
+def _convert_piper_audio(source: Path, target: Path, contact: Contact) -> None:
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
         raise RuntimeError("ffmpeg is required for local Piper MP3 output")
 
-    pitch = max(-6, min(6, pitch))
-    factor = 2 ** (pitch / 24)
+    profile = VOICE_PROFILES.get(contact.voice, VOICE_PROFILES["default"])
+    pitch = max(-10, min(10, contact.tts_pitch + int(profile["pitch"])))
+    factor = 2 ** (pitch / 12)
     sample_rate = 22050
     gain_db = os.getenv("PI_TTS_GAIN_DB", "6").strip()
     filters = []
@@ -142,6 +163,8 @@ def _convert_piper_audio(source: Path, target: Path, pitch: int) -> None:
         filters.append(f"asetrate={sample_rate}*{factor:.6f}")
         filters.append(f"aresample={sample_rate}")
         filters.append(f"atempo={1 / factor:.6f}")
+    filters.append(f"atempo={profile['tempo']}")
+    filters.extend(profile["filters"])
     filters.extend([f"volume={gain_db}dB", "alimiter=limit=0.95"])
     command = [
         ffmpeg,
