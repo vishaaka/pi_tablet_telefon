@@ -70,6 +70,18 @@ export PI_TTS_AUDIO_BOOST=true
 export PI_TTS_GAIN_DB=8
 ```
 
+### Yerel Turkce TTS
+
+Internet ve token gerektirmeyen yerel Turkce ses icin Piper kurulabilir:
+
+```bash
+cd ~/pi_tablet_telefon
+bash device/scripts/install-local-tts.sh
+bash device/scripts/check-local-tts.sh
+```
+
+Varsayilan model `tr_TR-dfki-medium` modelidir. Model backend surecinde bellekte tutulur. Rehber kisilerinin `tts_rate` ve `tts_pitch` degerleri ayni temel Turkce sesi farkli hiz ve perdeyle sekillendirir.
+
 ## Otomatik Yerel Sesli Gorusme
 
 Token veya internet gerektirmeyen hizli Turkce gorusme icin `whisper.cpp` ve `llama.cpp` tabanli yerel servis kurulabilir:
