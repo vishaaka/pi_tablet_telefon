@@ -56,7 +56,7 @@ Type=simple
 User=$RUN_USER
 WorkingDirectory=$LLAMA_DIR
 Environment=HOME=$RUN_HOME
-ExecStart=$LLAMA_DIR/build/bin/llama-server -m $MODEL_FILE --host 127.0.0.1 --port 8081 -c 768 -t 2 --jinja
+ExecStart=$LLAMA_DIR/build/bin/llama-server -m $MODEL_FILE --host 127.0.0.1 --port 8081 -c 768 -t 2 -np 1 --jinja
 Restart=always
 RestartSec=5
 
