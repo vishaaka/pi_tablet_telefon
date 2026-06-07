@@ -80,7 +80,7 @@ bash device/scripts/install-local-tts.sh
 bash device/scripts/check-local-tts.sh
 ```
 
-Varsayilan model `tr_TR-dfki-medium` modelidir. Model backend surecinde bellekte tutulur. Rehber kisilerinin `tts_rate` ve `tts_pitch` degerleri ayni temel Turkce sesi farkli hiz ve perdeyle sekillendirir.
+Varsayilan model `tr_TR-dfki-medium` modelidir. Pi 2GB bellegini korumak icin model yalnizca ses uretilirken yuklenir ve cikti Android uyumlulugu icin MP3'e cevrilir. Rehber kisilerinin `tts_rate` ve `tts_pitch` degerleri ayni temel Turkce sesi farkli hiz ve perdeyle sekillendirir.
 
 ## Otomatik Yerel Sesli Gorusme
 
@@ -92,7 +92,7 @@ bash device/scripts/install-local-voice-ai.sh
 bash device/scripts/check-local-voice-ai.sh
 ```
 
-Varsayilan yerel model `Qwen/Qwen3-0.6B-GGUF:Q8_0`, konusma tanima modeli ise Whisper Tiny multilingual modelidir. Android uygulamasi AI cevabinin sesi bittikten iki saniye sonra otomatik dinlemeye baslar. Insan sesi algilandiktan sonra konusma devam ettigi surece kayit devam eder ve iki saniyelik sessizlikte cevap uretilir.
+Varsayilan yerel model Pi 2GB icin `Qwen/Qwen3-0.6B-GGUF:Q4_K_M`, konusma tanima modeli ise Whisper Tiny multilingual modelidir. Android uygulamasi AI cevabinin sesi bittikten iki saniye sonra otomatik dinlemeye baslar. Insan sesi algilandiktan sonra konusma devam ettigi surece kayit devam eder ve iki saniyelik sessizlikte cevap uretilir.
 
 ## Sesli Giris
 

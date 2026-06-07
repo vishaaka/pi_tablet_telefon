@@ -38,8 +38,7 @@ sudo tee "$BACKEND_DROPIN" >/dev/null <<DROPIN
 Environment=PI_TTS_ENABLED_OVERRIDE=true
 Environment=PI_TTS_PROVIDER_OVERRIDE=piper
 Environment=PI_PIPER_MODEL=$MODEL
-Environment=PI_PIPER_VOLUME=1.15
-Environment=PI_TTS_AUDIO_BOOST=true
+Environment=PI_PIPER_VOLUME=1.0
 Environment=PI_TTS_GAIN_DB=6
 DROPIN
 
@@ -50,8 +49,7 @@ echo "Testing local Turkish TTS..."
 export PI_TTS_ENABLED_OVERRIDE=true
 export PI_TTS_PROVIDER_OVERRIDE=piper
 export PI_PIPER_MODEL="$MODEL"
-export PI_PIPER_VOLUME=1.15
-export PI_TTS_AUDIO_BOOST=true
+export PI_PIPER_VOLUME=1.0
 export PI_TTS_GAIN_DB=6
 cd "$BACKEND_DIR"
 "$VENV/bin/python" - <<'PY'

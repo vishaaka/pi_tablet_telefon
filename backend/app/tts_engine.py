@@ -1,10 +1,10 @@
 import os
 import shutil
 import subprocess
+import sys
 import threading
 import time
 import urllib.request
-import wave
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -23,8 +23,6 @@ class TtsResult:
 
 
 _hf_client = None
-_piper_voice = None
-_piper_voice_path = None
 _piper_lock = threading.Lock()
 
 
@@ -100,47 +98,51 @@ def _hf_space_tts(call_id: str, contact: Contact, text: str) -> TtsResult:
 
 
 def _piper_tts(call_id: str, contact: Contact, text: str) -> TtsResult:
-    from piper.config import SynthesisConfig
-
-    voice = _get_piper_voice()
     AUDIO_DIR.mkdir(parents=True, exist_ok=True)
-    target = AUDIO_DIR / f"{int(time.time())}_{call_id[:8]}.wav"
+    stem = f"{int(time.time())}_{call_id[:8]}"
+    source = AUDIO_DIR / f"{stem}.piper.wav"
+    target = AUDIO_DIR / f"{stem}.mp3"
     rate = max(-8, min(8, contact.tts_rate))
-    syn_config = SynthesisConfig(
-        length_scale=max(0.78, min(1.25, 1.0 - (rate * 0.025))),
-        volume=float(os.getenv("PI_PIPER_VOLUME", "1.15")),
-        normalize_audio=True,
-    )
-    with _piper_lock, wave.open(str(target), "wb") as wav_file:
-        voice.synthesize_wav(text[:900], wav_file, syn_config=syn_config)
-
-    _shape_piper_voice(target, contact.tts_pitch)
-    _boost_audio_file(target)
+    model = os.getenv("PI_PIPER_MODEL", "/opt/pi-tablet-ai/piper/tr_TR-dfki-medium.onnx")
+    command = [
+        sys.executable,
+        "-m",
+        "piper",
+        "-m",
+        model,
+        "-f",
+        str(source),
+        "--length-scale",
+        str(max(0.78, min(1.25, 1.0 - (rate * 0.025)))),
+        "--volume",
+        os.getenv("PI_PIPER_VOLUME", "1.0"),
+        "--",
+        text[:900],
+    ]
+    with _piper_lock:
+        try:
+            subprocess.run(command, check=True, timeout=60)
+            _convert_piper_audio(source, target, contact.tts_pitch)
+        finally:
+            source.unlink(missing_ok=True)
     return TtsResult(audio_url=f"/audio/{target.name}", provider="piper")
 
 
-def _get_piper_voice():
-    global _piper_voice, _piper_voice_path
-    from piper import PiperVoice
-
-    model_path = os.getenv("PI_PIPER_MODEL", "/opt/pi-tablet-ai/piper/tr_TR-dfki-medium.onnx")
-    if _piper_voice is None or _piper_voice_path != model_path:
-        with _piper_lock:
-            if _piper_voice is None or _piper_voice_path != model_path:
-                _piper_voice = PiperVoice.load(model_path)
-                _piper_voice_path = model_path
-    return _piper_voice
-
-
-def _shape_piper_voice(path: Path, pitch: int) -> None:
+def _convert_piper_audio(source: Path, target: Path, pitch: int) -> None:
     ffmpeg = shutil.which("ffmpeg")
-    if not ffmpeg or pitch == 0:
-        return
+    if not ffmpeg:
+        raise RuntimeError("ffmpeg is required for local Piper MP3 output")
 
     pitch = max(-6, min(6, pitch))
     factor = 2 ** (pitch / 24)
     sample_rate = 22050
-    temp = path.with_name(f"{path.stem}.voice{path.suffix}")
+    gain_db = os.getenv("PI_TTS_GAIN_DB", "6").strip()
+    filters = []
+    if pitch != 0:
+        filters.append(f"asetrate={sample_rate}*{factor:.6f}")
+        filters.append(f"aresample={sample_rate}")
+        filters.append(f"atempo={1 / factor:.6f}")
+    filters.extend([f"volume={gain_db}dB", "alimiter=limit=0.95"])
     command = [
         ffmpeg,
         "-y",
@@ -148,16 +150,16 @@ def _shape_piper_voice(path: Path, pitch: int) -> None:
         "-loglevel",
         "error",
         "-i",
-        str(path),
+        str(source),
         "-af",
-        f"asetrate={sample_rate}*{factor:.6f},aresample={sample_rate},atempo={1 / factor:.6f}",
-        str(temp),
+        ",".join(filters),
+        "-codec:a",
+        "libmp3lame",
+        "-b:a",
+        "96k",
+        str(target),
     ]
-    try:
-        subprocess.run(command, check=True, timeout=45)
-        temp.replace(path)
-    except Exception:
-        temp.unlink(missing_ok=True)
+    subprocess.run(command, check=True, timeout=45)
 
 
 def _get_hf_client():

@@ -46,7 +46,7 @@ Type=simple
 User=$RUN_USER
 WorkingDirectory=$LLAMA_DIR
 Environment=HOME=$RUN_HOME
-ExecStart=$LLAMA_DIR/build/bin/llama-server -hf Qwen/Qwen3-0.6B-GGUF:Q8_0 --host 127.0.0.1 --port 8081 -c 1024 -t 3 --jinja
+ExecStart=$LLAMA_DIR/build/bin/llama-server -hf Qwen/Qwen3-0.6B-GGUF:Q4_K_M --host 127.0.0.1 --port 8081 -c 768 -t 2 --jinja
 Restart=always
 RestartSec=5
 
@@ -63,12 +63,12 @@ Wants=pi-tablet-local-ai.service
 [Service]
 Environment=PI_AI_PROVIDER_OVERRIDE=llama_cpp
 Environment=PI_AI_API_BASE_OVERRIDE=http://127.0.0.1:8081/v1
-Environment=PI_AI_MODEL_OVERRIDE=Qwen/Qwen3-0.6B-GGUF:Q8_0
+Environment=PI_AI_MODEL_OVERRIDE=Qwen/Qwen3-0.6B-GGUF:Q4_K_M
 Environment=PI_AI_TIMEOUT_SECONDS=45
 Environment=PI_STT_COMMAND=$WHISPER_DIR/build/bin/whisper-cli
 Environment=PI_STT_MODEL=$WHISPER_DIR/models/ggml-tiny.bin
 Environment=PI_STT_LANGUAGE=tr
-Environment=PI_STT_THREADS=3
+Environment=PI_STT_THREADS=2
 Environment=PI_MIC_WAIT_SECONDS=30
 Environment=PI_MIC_MAX_SECONDS=30
 Environment=PI_MIC_SILENCE_SECONDS=2.0
