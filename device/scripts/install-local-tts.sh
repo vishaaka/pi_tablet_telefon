@@ -47,6 +47,12 @@ sudo systemctl daemon-reload
 sudo systemctl restart pi-tablet-backend.service
 
 echo "Testing local Turkish TTS..."
+export PI_TTS_ENABLED_OVERRIDE=true
+export PI_TTS_PROVIDER_OVERRIDE=piper
+export PI_PIPER_MODEL="$MODEL"
+export PI_PIPER_VOLUME=1.15
+export PI_TTS_AUDIO_BOOST=true
+export PI_TTS_GAIN_DB=6
 cd "$BACKEND_DIR"
 "$VENV/bin/python" - <<'PY'
 from app.personas import CONTACTS
@@ -61,4 +67,3 @@ PY
 
 curl -fsS http://127.0.0.1:8080/health
 echo
-
