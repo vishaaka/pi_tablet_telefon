@@ -30,6 +30,8 @@ INTENT_PHRASES = {
     "friend": ("arkadas", "arkadasim"),
     "family": ("annem", "babam", "ailem", "kardesim"),
     "technical": ("calismiyor", "hata", "internet", "telefon", "bilgisayar"),
+    "why": ("neden", "niye"),
+    "favorite": ("en sevdigin", "favorin", "en cok neyi seversin"),
 }
 
 
@@ -99,14 +101,82 @@ BRIDGES = {
     "kerem": ("Güzel anlattın. Bunu bir kısa cümleyle tekrar deneyelim.", "Anladım. Aynı şeyi başka bir cümleyle söyler misin?"),
 }
 
+FOLLOW_UPS = {
+    "play": {
+        "yes": "Harika! Bilmece geliyor: Ağzı var konuşmaz, yatağı var uyumaz. Nedir?",
+        "no": "Tamam, oyun oynamayalım. Bugün olan güzel bir şeyi anlatmak ister misin?",
+    },
+    "story": {
+        "yes": "O zaman devam edelim. Küçük yıldız, arkadaşına yol göstermek için bütün gece parlamış.",
+        "no": "Tamam, hikâyeyi burada bırakalım. Başka ne konuşmak istersin?",
+    },
+    "bored": {
+        "yes": "Süper. Bilmece mi, kısa hikâye mi seçersin?",
+        "no": "Peki. İstersen bugün gördüğün ilginç bir şeyi anlatabilirsin.",
+    },
+    "sad": {
+        "yes": "Seni dinliyorum. Seni üzen şeyin en zor kısmı neydi?",
+        "no": "Tamam, anlatmak zorunda değilsin. Birlikte daha güzel bir konu seçebiliriz.",
+    },
+    "technical": {
+        "yes": "Güzel. Şimdi ekranda gördüğün ilk şeyi söyle, oradan devam edelim.",
+        "no": "Tamam. Başka bir çözüm deneyelim; cihaz açık mı?",
+    },
+}
 
-def scripted_reply(contact: Contact, user_text: str, turn: int = 0) -> tuple[str, str]:
+FAVORITES = {
+    "asya": "Ben en çok sakin müzikleri ve güzel hikâyeleri severim.",
+    "deniz": "Ben çalışan bir şeyi düzeltmeyi ve yeni teknolojileri severim.",
+    "mira": "Ben renkli resimleri, eğlenceli hikâyeleri ve sohbet etmeyi severim.",
+    "atlas": "Ben iyi hazırlanmış planları ve tamamlanan işleri severim.",
+    "zeynep": "Ben huzurlu yürüyüşleri ve günün güzel anlarını severim.",
+    "kerem": "Ben yeni kelimeler öğrenmeyi ve farklı diller duymayı severim.",
+}
+
+
+def scripted_reply(
+    contact: Contact,
+    user_text: str,
+    turn: int = 0,
+    context: dict[str, str] | None = None,
+) -> tuple[str, str]:
+    context = context if context is not None else {}
     normalized = _normalize(user_text)
     intent = _detect_intent(normalized)
+
+    name = _extract_name(user_text)
+    if name:
+        context["user_name"] = name
+        context["last_intent"] = "name"
+        return f"Tanıştığımıza sevindim {name}. Bugün ne konuşmak istersin?", "name"
+
+    if intent in {"yes", "no"}:
+        previous_intent = context.get("last_intent", "")
+        follow_up = FOLLOW_UPS.get(previous_intent, {}).get(intent)
+        if follow_up:
+            context["last_intent"] = previous_intent
+            return follow_up, intent
+
+    if intent == "why" and context.get("last_topic"):
+        topic = context["last_topic"]
+        return f"{topic} hakkında bunu söylememin nedeni sana daha iyi yardımcı olmak.", "why"
+
+    if intent == "favorite":
+        context["last_intent"] = intent
+        return FAVORITES.get(contact.id, FAVORITES["asya"]), intent
+
     replies = CONTACT_REPLIES.get(contact.id, {}).get(intent) or COMMON_REPLIES.get(intent)
     if replies:
+        context["last_intent"] = intent
         return replies[turn % len(replies)], intent
 
+    topic = _topic_phrase(user_text)
+    if topic:
+        context["last_topic"] = topic
+        context["last_intent"] = "bridge"
+        return _topic_reply(contact.id, topic, turn), "bridge"
+
+    context["last_intent"] = "bridge"
     bridges = BRIDGES.get(contact.id, BRIDGES["asya"])
     return bridges[turn % len(bridges)], "bridge"
 
@@ -127,3 +197,50 @@ def _normalize(value: str) -> str:
     value = unicodedata.normalize("NFKD", value)
     value = "".join(ch for ch in value if not unicodedata.combining(ch))
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9? ]+", " ", value)).strip()
+
+
+def _extract_name(value: str) -> str | None:
+    match = re.search(r"\b(?:benim adım|benim adim|adım|adim|ismim)\s+([A-Za-zÇĞİÖŞÜçğıöşü]{2,20})", value, re.IGNORECASE)
+    if not match:
+        return None
+    return match.group(1).strip().title()
+
+
+def _topic_phrase(value: str) -> str:
+    cleaned = re.sub(r"[.!?]+$", "", value.strip())
+    cleaned = re.sub(r"^(bugün|bugun|az önce|az once|ben|bence)\s+", "", cleaned, flags=re.IGNORECASE)
+    words = cleaned.split()
+    if len(words) < 2:
+        return ""
+    return " ".join(words[:8])
+
+
+def _topic_reply(contact_id: str, topic: str, turn: int) -> str:
+    replies = {
+        "asya": (
+            f"{topic} demen ilgimi çekti. Bu sana nasıl hissettirdi?",
+            f"{topic} hakkında seni dinliyorum. Sonra ne oldu?",
+        ),
+        "deniz": (
+            f"{topic} ilginçmiş. Bunun en önemli kısmı sence ne?",
+            f"{topic} konusunu anladım. Bir sonraki adım ne oldu?",
+        ),
+        "mira": (
+            f"{topic} gerçekten ilginçmiş! En çok hangi kısmını sevdin?",
+            f"{topic} deyince merak ettim. Sonra ne oldu?",
+        ),
+        "atlas": (
+            f"{topic} konusunu anladım. Buradaki en önemli nokta nedir?",
+            f"{topic} için ulaşmak istediğin sonuç nedir?",
+        ),
+        "zeynep": (
+            f"{topic} hakkında anlattığını duydum. Bu sende nasıl bir his bıraktı?",
+            f"{topic} gününün güzel bir parçası mıydı?",
+        ),
+        "kerem": (
+            f"{topic} güzel bir anlatım oldu. Bunu bir cümle daha açıklayabilir misin?",
+            f"{topic} konusunu başka kelimelerle nasıl anlatırsın?",
+        ),
+    }
+    choices = replies.get(contact_id, replies["asya"])
+    return choices[turn % len(choices)]

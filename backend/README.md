@@ -70,9 +70,9 @@ export PI_TTS_AUDIO_BOOST=true
 export PI_TTS_GAIN_DB=8
 ```
 
-### Yerel Turkce TTS
+### Dogal Turkce TTS ve yerel yedek
 
-Internet ve token gerektirmeyen yerel Turkce ses icin Piper kurulabilir:
+Kurulum, daha dogal kadin/erkek sesleri icin dogrudan Edge TTS kullanir. Internet olmadiginda otomatik olarak yerel Piper sesine duser:
 
 ```bash
 cd ~/pi_tablet_telefon
@@ -80,7 +80,7 @@ bash device/scripts/install-local-tts.sh
 bash device/scripts/check-local-tts.sh
 ```
 
-Varsayilan model `tr_TR-dfki-medium` modelidir. Pi 2GB bellegini korumak icin model yalnizca ses uretilirken yuklenir ve cikti Android uyumlulugu icin MP3'e cevrilir. Rehber kisilerinin `tts_rate` ve `tts_pitch` degerleri ayni temel Turkce sesi farkli hiz ve perdeyle sekillendirir.
+Edge TTS cevaplari kisi sesi, hiz ve perde ayarina gore onbellege alinir. Tekrarlanan cevaplar aninda oynatilir. Varsayilan yerel yedek model `tr_TR-dfki-medium` modelidir; Pi 2GB bellegini korumak icin yalnizca gerektiginde calisir.
 
 ## Otomatik Yerel Sesli Gorusme
 

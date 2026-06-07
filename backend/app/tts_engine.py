@@ -1,5 +1,6 @@
 import os
 import hashlib
+import importlib.util
 import shutil
 import subprocess
 import sys
@@ -25,15 +26,25 @@ class TtsResult:
 
 _hf_client = None
 _piper_lock = threading.Lock()
-VOICE_CACHE_VERSION = "v2"
+_edge_lock = threading.Lock()
+VOICE_CACHE_VERSION = "v3"
 VOICE_PROFILES = {
-    "soft_female": {"pitch": 3, "tempo": 0.97, "filters": ["highpass=f=120", "equalizer=f=3000:t=q:w=1:g=2"]},
-    "warm_male": {"pitch": -4, "tempo": 1.04, "filters": ["equalizer=f=180:t=q:w=1:g=3", "equalizer=f=3200:t=q:w=1:g=-2"]},
-    "bright_female": {"pitch": 6, "tempo": 1.08, "filters": ["highpass=f=150", "equalizer=f=4200:t=q:w=1:g=4"]},
-    "deep_male": {"pitch": -7, "tempo": 0.92, "filters": ["equalizer=f=120:t=q:w=1:g=5", "equalizer=f=2800:t=q:w=1:g=-3"]},
-    "calm_female": {"pitch": 1, "tempo": 0.90, "filters": ["highpass=f=100", "equalizer=f=900:t=q:w=1:g=2"]},
-    "clear_male": {"pitch": -2, "tempo": 1.00, "filters": ["highpass=f=90", "equalizer=f=2500:t=q:w=1:g=4"]},
+    "soft_female": {"pitch": 1, "tempo": 0.98, "filters": ["highpass=f=100"]},
+    "warm_male": {"pitch": -1, "tempo": 1.02, "filters": ["equalizer=f=180:t=q:w=1:g=1"]},
+    "bright_female": {"pitch": 2, "tempo": 1.04, "filters": ["highpass=f=120"]},
+    "deep_male": {"pitch": -2, "tempo": 0.96, "filters": ["equalizer=f=140:t=q:w=1:g=2"]},
+    "calm_female": {"pitch": 0, "tempo": 0.94, "filters": ["highpass=f=90"]},
+    "clear_male": {"pitch": 0, "tempo": 1.00, "filters": ["highpass=f=80"]},
     "default": {"pitch": 0, "tempo": 1.0, "filters": []},
+}
+EDGE_PROFILES = {
+    "soft_female": {"rate": -2, "pitch": 2},
+    "warm_male": {"rate": 2, "pitch": -2},
+    "bright_female": {"rate": 6, "pitch": 5},
+    "deep_male": {"rate": -5, "pitch": -5},
+    "calm_female": {"rate": -6, "pitch": -1},
+    "clear_male": {"rate": 3, "pitch": 1},
+    "default": {"rate": 0, "pitch": 0},
 }
 
 
@@ -48,6 +59,7 @@ def tts_status() -> dict:
         "model": str(piper_model) if provider == "piper" else None,
         "configured": (
             provider in {"disabled", "none", "hf_space"}
+            or (provider == "edge_tts" and importlib.util.find_spec("edge_tts") is not None)
             or (provider == "piper" and piper_model.is_file() and piper_model.with_suffix(".onnx.json").is_file())
         ),
     }
@@ -61,6 +73,11 @@ def synthesize_for_contact(call_id: str, contact: Contact, text: str) -> TtsResu
         provider = _tts_provider()
         if provider == "hf_space":
             return _hf_space_tts(call_id, contact, text)
+        if provider == "edge_tts":
+            try:
+                return _edge_tts(call_id, contact, text)
+            except Exception:
+                return _piper_tts(call_id, contact, text)
         if provider == "piper":
             return _piper_tts(call_id, contact, text)
         return TtsResult(audio_url=None, provider=None, error=f"Unsupported TTS provider: {provider}")
@@ -106,6 +123,43 @@ def _hf_space_tts(call_id: str, contact: Contact, text: str) -> TtsResult:
 
     _boost_audio_file(target)
     return TtsResult(audio_url=f"/audio/{target.name}", provider="hf_space")
+
+
+def _edge_tts(call_id: str, contact: Contact, text: str) -> TtsResult:
+    AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    profile = EDGE_PROFILES.get(contact.voice, EDGE_PROFILES["default"])
+    voice = (contact.tts_voice or "tr-TR-EmelNeural").split(" - ", 1)[0]
+    rate = max(-20, min(20, contact.tts_rate + int(profile["rate"])))
+    pitch = max(-20, min(20, contact.tts_pitch + int(profile["pitch"])))
+    cache_key = hashlib.sha256(
+        f"{VOICE_CACHE_VERSION}|edge|{voice}|{rate}|{pitch}|{text}".encode("utf-8")
+    ).hexdigest()[:20]
+    target = AUDIO_DIR / f"cache_{cache_key}.mp3"
+    if target.is_file():
+        return TtsResult(audio_url=f"/audio/{target.name}", provider="edge-tts-cache")
+
+    command = [
+        sys.executable,
+        "-m",
+        "edge_tts",
+        f"--voice={voice}",
+        f"--rate={rate:+d}%",
+        f"--pitch={pitch:+d}Hz",
+        "--text",
+        text[:900],
+        "--write-media",
+        str(target),
+    ]
+    with _edge_lock:
+        if target.is_file():
+            return TtsResult(audio_url=f"/audio/{target.name}", provider="edge-tts-cache")
+        try:
+            subprocess.run(command, check=True, timeout=20)
+            _boost_audio_file(target)
+        except Exception:
+            target.unlink(missing_ok=True)
+            raise
+    return TtsResult(audio_url=f"/audio/{target.name}", provider="edge-tts")
 
 
 def _piper_tts(call_id: str, contact: Contact, text: str) -> TtsResult:

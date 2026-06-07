@@ -20,7 +20,7 @@ fi
 
 sudo apt update
 sudo apt install -y ffmpeg curl
-"$VENV/bin/pip" install --upgrade piper-tts
+"$VENV/bin/pip" install --upgrade piper-tts edge-tts
 
 sudo mkdir -p "$PIPER_DIR"
 sudo chown -R "$RUN_USER:$RUN_USER" "$PIPER_DIR"
@@ -36,7 +36,7 @@ sudo mkdir -p "$(dirname "$BACKEND_DROPIN")"
 sudo tee "$BACKEND_DROPIN" >/dev/null <<DROPIN
 [Service]
 Environment=PI_TTS_ENABLED_OVERRIDE=true
-Environment=PI_TTS_PROVIDER_OVERRIDE=piper
+Environment=PI_TTS_PROVIDER_OVERRIDE=edge_tts
 Environment=PI_PIPER_MODEL=$MODEL
 Environment=PI_PIPER_VOLUME=1.0
 Environment=PI_TTS_GAIN_DB=6
@@ -45,9 +45,9 @@ DROPIN
 sudo systemctl daemon-reload
 sudo systemctl restart pi-tablet-backend.service
 
-echo "Testing local Turkish TTS..."
+echo "Testing natural Turkish TTS with local Piper fallback..."
 export PI_TTS_ENABLED_OVERRIDE=true
-export PI_TTS_PROVIDER_OVERRIDE=piper
+export PI_TTS_PROVIDER_OVERRIDE=edge_tts
 export PI_PIPER_MODEL="$MODEL"
 export PI_PIPER_VOLUME=1.0
 export PI_TTS_GAIN_DB=6
