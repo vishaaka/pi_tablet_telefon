@@ -110,4 +110,12 @@ export PI_MIC_SILENCE_THRESHOLD=420
 
 ## Hailo Notu
 
-Hailo islemleri Android/Waydroid icinde degil, bu host servis tarafinda yapilacak. Ileride kamera goruntusu veya vision pipeline eklendiginde HailoRT kullanan modul `app/hailo_runtime.py` icinde gelistirilecek.
+Hailo islemleri Android/Waydroid icinde degil, bu host servis tarafinda yapilacak. `GET /health` Hailo cihazini, `/dev/hailo*` dugumlerini, `hailortcli` durumunu ve Raspberry Pi kamera Hailo model dosyalarini raporlar.
+
+Hailo-8/8L bu projede STT, LLM ve TTS icin genel hizlandirici degildir. En dogru kullanim kamera/goruntu tarafidir: yuz, insan, nesne, poz veya gesture algilama. Ilk vision testi:
+
+```bash
+bash device/scripts/check-hailo-vision.sh
+```
+
+Ayrinti: `docs/hailo-offload-plan.md`
