@@ -92,7 +92,7 @@ bash device/scripts/install-local-voice-ai.sh
 bash device/scripts/check-local-voice-ai.sh
 ```
 
-Varsayilan yerel model Pi 2GB icin `Qwen/Qwen3-0.6B-GGUF:Q4_K_M`, konusma tanima modeli ise Whisper Tiny multilingual modelidir. Android uygulamasi AI cevabinin sesi bittikten iki saniye sonra otomatik dinlemeye baslar. Insan sesi algilandiktan sonra konusma devam ettigi surece kayit devam eder ve iki saniyelik sessizlikte cevap uretilir.
+Varsayilan yerel model Pi 2GB icin bir kez indirilen `Qwen3-0.6B-Q4_K_M` dosyasidir; konusma tanima modeli ise Whisper Tiny multilingual modelidir. Android uygulamasi AI cevabinin sesi bittikten iki saniye sonra otomatik dinlemeye baslar. Insan sesi algilandiktan sonra konusma devam ettigi surece kayit devam eder ve iki saniyelik sessizlikte cevap uretilir.
 
 ## Sesli Giris
 
