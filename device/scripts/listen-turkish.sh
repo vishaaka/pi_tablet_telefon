@@ -26,4 +26,10 @@ rm -f "$normalized"
 if [[ "$input" == "$WORK_DIR/"* ]]; then
   rm -f "$input"
 fi
+if [[ "$output" == \[*\] ]] ||
+  [[ "${output,,}" == *"müzik"* ]] ||
+  [[ "${output,,}" == *"music"* ]] ||
+  [[ "${output,,}" == *"sessizlik"* ]]; then
+  output=""
+fi
 printf '%s\n' "$output"
