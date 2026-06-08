@@ -31,6 +31,21 @@ component DialKey inherits Rectangle {
     }
 }
 
+component SystemNavKey inherits Rectangle {
+    in property <string> symbol;
+    callback clicked;
+    background: transparent;
+    height: 46px;
+    TouchArea { clicked => { root.clicked(); } }
+    Text {
+        text: symbol;
+        font-size: 25px;
+        color: #55555e;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
 export component TabletShell inherits Window {
     title: "Pi Tablet";
     background: #f7f7fa;
@@ -55,8 +70,7 @@ export component TabletShell inherits Window {
 
         HorizontalLayout {
             height: 44px;
-            if screen != "home": Button { text: "<"; width: 48px; clicked => { screen = "home"; in-call = false; root.end-call(); } }
-            Text { text: screen == "home" ? "Pi Tablet" : screen == "phone" ? "Telefon" : "Uygulamalar"; font-size: 28px; font-weight: 700; color: #111115; }
+            Text { text: screen == "home" ? "Pi Tablet" : screen == "phone" ? "Telefon" : "Son uygulamalar"; font-size: 28px; font-weight: 700; color: #111115; }
             Text { horizontal-stretch: 1; text: status; horizontal-alignment: right; vertical-alignment: center; color: #676772; font-size: 13px; }
         }
 
@@ -165,14 +179,75 @@ export component TabletShell inherits Window {
             }
         }
 
+        if screen == "recent-apps": VerticalLayout {
+            spacing: 12px;
+            Text { text: "Acik uygulamalar"; font-size: 18px; font-weight: 700; color: #151519; }
+            Rectangle {
+                height: 112px;
+                background: #ffffff;
+                border-color: #dedee4;
+                border-width: 1px;
+                border-radius: 8px;
+                TouchArea { clicked => { screen = "phone"; } }
+                VerticalLayout {
+                    padding: 14px;
+                    spacing: 6px;
+                    Text { text: "Telefon"; font-size: 20px; font-weight: 700; color: #151519; }
+                    Text { text: in-call ? contact-name + " ile gorusme suruyor" : "Tuş takımı ve rehber"; font-size: 13px; color: #686872; }
+                }
+            }
+            Rectangle {
+                height: 112px;
+                background: #ffffff;
+                border-color: #dedee4;
+                border-width: 1px;
+                border-radius: 8px;
+                TouchArea { clicked => { screen = "home"; } }
+                VerticalLayout {
+                    padding: 14px;
+                    spacing: 6px;
+                    Text { text: "Pi Tablet"; font-size: 20px; font-weight: 700; color: #151519; }
+                    Text { text: "Ana ekran"; font-size: 13px; color: #686872; }
+                }
+            }
+        }
+
         Rectangle { vertical-stretch: 1; background: transparent; }
 
-        if screen == "home": HorizontalLayout {
-            height: 52px;
-            spacing: 10px;
-            Button { text: "Ana ekran"; clicked => { screen = "home"; } }
-            Button { text: "Telefon"; clicked => { screen = "phone"; } }
-            Button { text: "Uygulamalar"; clicked => { screen = "home"; } }
+        Rectangle {
+            height: 48px;
+            background: #f2f2f6;
+            border-color: #e1e1e6;
+            border-width: 1px;
+            HorizontalLayout {
+                spacing: 0px;
+                SystemNavKey {
+                    symbol: "◁";
+                    clicked => {
+                        if in-call {
+                            root.end-call();
+                            screen = "home";
+                        } else if screen == "phone" && phone-view != "keypad" {
+                            phone-view = "keypad";
+                        } else if screen != "home" {
+                            screen = "home";
+                        }
+                    }
+                }
+                SystemNavKey {
+                    symbol: "○";
+                    clicked => {
+                        if in-call {
+                            root.end-call();
+                        }
+                        screen = "home";
+                    }
+                }
+                SystemNavKey {
+                    symbol: "□";
+                    clicked => { screen = "recent-apps"; }
+                }
+            }
         }
     }
 }
