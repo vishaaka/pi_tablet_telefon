@@ -28,6 +28,8 @@ sudo apt install -y \
   libfontconfig1-dev libwayland-dev libxkbcommon-dev libudev-dev libinput-dev libgl1-mesa-dev \
   chromium gcompris-qt tuxpaint ffmpeg espeak-ng
 
+bash "$REPO_DIR/device/scripts/install-rust-stt.sh"
+
 if [ ! -x "$USER_HOME/.cargo/bin/cargo" ]; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
     sh -s -- -y --profile minimal --default-toolchain stable
@@ -37,10 +39,11 @@ export PATH="$USER_HOME/.cargo/bin:$PATH"
 cd "$REPO_DIR/rust-tablet"
 CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}" cargo build --release
 
-sudo mkdir -p "$INSTALL_DIR/bin" /var/lib/pi-tablet-rust/audio
+sudo mkdir -p "$INSTALL_DIR/bin" /var/lib/pi-tablet-rust/audio /var/lib/pi-tablet-rust/stt
 sudo install -m 0755 target/release/pi-tablet-shell "$INSTALL_DIR/bin/pi-tablet-shell"
 sudo install -m 0755 target/release/pi-tablet-backend-rs "$INSTALL_DIR/bin/pi-tablet-backend-rs"
 sudo install -m 0755 "$REPO_DIR/device/scripts/launch-youtube-kids.sh" "$INSTALL_DIR/bin/launch-youtube-kids"
+sudo install -m 0755 "$REPO_DIR/device/scripts/listen-turkish.sh" "$INSTALL_DIR/bin/listen-turkish"
 sudo chown -R "$USER_NAME:$USER_NAME" /var/lib/pi-tablet-rust
 
 sudo tee "$SERVICE_FILE" >/dev/null <<SERVICE

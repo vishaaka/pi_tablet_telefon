@@ -135,6 +135,40 @@ fn main() -> Result<(), slint::PlatformError> {
     });
 
     let weak = ui.as_weak();
+    let call_slot = active_call.clone();
+    ui.on_listen(move || {
+        let weak = weak.clone();
+        let call_slot = call_slot.clone();
+        std::thread::spawn(move || {
+            let Some(call_id) = call_slot.lock().expect("call slot").clone() else {
+                return;
+            };
+            let url = format!("http://127.0.0.1:8090/calls/{call_id}/listen");
+            let reply = post_json(&url, "{}");
+            if let Some(reply) = reply.as_ref() {
+                play_reply(reply);
+            }
+            let heard = reply
+                .as_ref()
+                .and_then(|value| value["heard_text"].as_str())
+                .unwrap_or("Seni duyamadim")
+                .to_string();
+            let answer = reply
+                .as_ref()
+                .and_then(|value| value["reply"].as_str())
+                .unwrap_or("Biraz daha yakindan tekrar soyler misin?")
+                .to_string();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = weak.upgrade() {
+                    ui.set_listening(false);
+                    ui.set_status(format!("Duydum: {heard}").into());
+                    ui.set_last_reply(answer.into());
+                }
+            });
+        });
+    });
+
+    let weak = ui.as_weak();
     ui.on_end_call(move || {
         if let Some(call_id) = active_call.lock().expect("call slot").take() {
             let url = format!("http://127.0.0.1:8090/calls/{call_id}/end");
@@ -147,6 +181,7 @@ fn main() -> Result<(), slint::PlatformError> {
             .status();
         if let Some(ui) = weak.upgrade() {
             ui.set_in_call(false);
+            ui.set_listening(false);
             ui.set_contact_name("".into());
             ui.set_last_reply("".into());
             ui.set_status("Gorusme sonlandi".into());

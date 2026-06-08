@@ -26,9 +26,11 @@ export component TabletShell inherits Window {
     in-out property <bool> in-call: false;
     in-out property <string> contact-name: "";
     in-out property <string> last-reply: "";
+    in-out property <bool> listening: false;
     callback open-app(string);
     callback start-call(string);
     callback send-message(string);
+    callback listen;
     callback end-call;
 
     VerticalLayout {
@@ -85,6 +87,7 @@ export component TabletShell inherits Window {
             }
             if in-call: HorizontalLayout {
                 spacing: 6px;
+                Button { text: listening ? "Dinleniyor..." : "Konus"; enabled: !listening; clicked => { listening = true; status = "Seni dinliyorum..."; root.listen(); } }
                 Button { text: "Bilmece"; clicked => { root.send-message("Bilmece sor"); } }
                 Button { text: "Hikaye"; clicked => { root.send-message("Kisa hikaye anlat"); } }
                 Button { text: "Tesekkur"; clicked => { root.send-message("Tesekkur ederim"); } }

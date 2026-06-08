@@ -101,6 +101,11 @@ struct Message {
     text: String,
 }
 
+#[derive(Default, Deserialize)]
+struct ListenRequest {
+    audio_path: Option<String>,
+}
+
 #[derive(Serialize)]
 struct CallResponse {
     call_id: Uuid,
@@ -111,6 +116,7 @@ struct CallResponse {
 #[derive(Serialize)]
 struct MessageResponse {
     call_id: Uuid,
+    heard_text: Option<String>,
     reply: String,
     voice: String,
     provider: &'static str,
@@ -186,13 +192,23 @@ async fn message(
     AxumPath(call_id): AxumPath<Uuid>,
     Json(request): Json<Message>,
 ) -> Result<Json<MessageResponse>, StatusCode> {
+    reply_to_text(&state, call_id, request.text, None).await
+}
+
+async fn reply_to_text(
+    state: &AppState,
+    call_id: Uuid,
+    text: String,
+    heard_text: Option<String>,
+) -> Result<Json<MessageResponse>, StatusCode> {
     let mut calls = state.calls.write().await;
     let call = calls.get_mut(&call_id).ok_or(StatusCode::NOT_FOUND)?;
     let contact = find_contact(Some(&call.contact_id), None);
-    let reply = quick_reply(&contact, &request.text, call);
+    let reply = quick_reply(&contact, &text, call);
     let (audio_url, audio_provider) = synthesize(&state.audio_dir, &contact, &reply).await;
     Ok(Json(MessageResponse {
         call_id,
+        heard_text,
         reply,
         voice: contact.voice.to_string(),
         provider: "rust-scripted",
@@ -205,15 +221,15 @@ async fn message(
 async fn listen(
     State(state): State<AppState>,
     AxumPath(call_id): AxumPath<Uuid>,
+    Json(request): Json<ListenRequest>,
 ) -> Result<Json<MessageResponse>, StatusCode> {
-    message(
-        State(state),
-        AxumPath(call_id),
-        Json(Message {
-            text: "Seni dinliyorum".into(),
-        }),
-    )
-    .await
+    if !state.calls.read().await.contains_key(&call_id) {
+        return Err(StatusCode::NOT_FOUND);
+    }
+    let heard = transcribe(request.audio_path.as_deref())
+        .await
+        .unwrap_or_else(|| "Seni duyamadim".into());
+    reply_to_text(&state, call_id, heard.clone(), Some(heard)).await
 }
 
 async fn end_call(State(state): State<AppState>, AxumPath(call_id): AxumPath<Uuid>) -> StatusCode {
@@ -300,6 +316,9 @@ fn quick_reply(contact: &Contact, text: &str, call: &mut Call) -> String {
     if normalized.contains("tesekkur") || normalized.contains("teşekkür") {
         return "Rica ederim. Seninle konusmak cok guzel.".into();
     }
+    if normalized.contains("duyamadim") {
+        return "Seni tam duyamadim. Biraz daha yakindan tekrar soyler misin?".into();
+    }
     call.last_topic = text
         .split_whitespace()
         .take(7)
@@ -309,6 +328,21 @@ fn quick_reply(contact: &Contact, text: &str, call: &mut Call) -> String {
         "{} demen ilgimi cekti. Biraz daha anlatir misin?",
         call.last_topic
     )
+}
+
+async fn transcribe(audio_path: Option<&str>) -> Option<String> {
+    let listener = std::env::var("PI_STT_LISTEN_COMMAND")
+        .unwrap_or_else(|_| "/opt/pi-tablet-rust/bin/listen-turkish".into());
+    let mut command = Command::new(listener);
+    if let Some(path) = audio_path {
+        command.arg(path);
+    }
+    let output = command.output().await.ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    (!text.is_empty()).then_some(text)
 }
 
 fn greeting(contact: &Contact) -> String {
