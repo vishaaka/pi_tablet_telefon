@@ -12,7 +12,14 @@ fn launch(program: &str, args: &[&str]) {
 fn play_phone_sound(name: &str, looping: bool) {
     let path = format!("/opt/pi-tablet-rust/sounds/{name}.wav");
     let mut command = Command::new("ffplay");
-    command.args(["-nodisp", "-autoexit", "-loglevel", "error", "-volume", "100"]);
+    command.args([
+        "-nodisp",
+        "-autoexit",
+        "-loglevel",
+        "error",
+        "-volume",
+        "100",
+    ]);
     if looping {
         command.args(["-stream_loop", "-1"]);
     }
@@ -44,16 +51,15 @@ fn post_json(url: &str, body: &str) -> Option<serde_json::Value> {
 
 fn play_reply(reply: &serde_json::Value) {
     if let Some(audio_url) = reply["audio_url"].as_str() {
-        launch(
-            "ffplay",
-            &[
+        let _ = Command::new("ffplay")
+            .args([
                 "-nodisp",
                 "-autoexit",
                 "-loglevel",
                 "error",
                 &format!("http://127.0.0.1:8090{audio_url}"),
-            ],
-        );
+            ])
+            .status();
     }
 }
 
@@ -69,10 +75,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let weak = ui.as_weak();
     ui.on_open_app(move |app| {
         match app.as_str() {
-            "youtube-kids" => launch(
-                "/opt/pi-tablet-rust/bin/launch-youtube-kids",
-                &[],
-            ),
+            "youtube-kids" => launch("/opt/pi-tablet-rust/bin/launch-youtube-kids", &[]),
             "gcompris" => launch("gcompris-qt", &["--fullscreen"]),
             "tuxpaint" => launch("tuxpaint", &["--fullscreen", "--nosysfonts"]),
             _ => {}
@@ -126,14 +129,64 @@ fn main() -> Result<(), slint::PlatformError> {
             let greeting = reply
                 .and_then(|value| value["reply"].as_str().map(ToOwned::to_owned))
                 .unwrap_or_else(|| "Merhaba".into());
+            let greeting_name = name.clone();
+            let weak_greeting = weak.clone();
             let _ = slint::invoke_from_event_loop(move || {
-                if let Some(ui) = weak.upgrade() {
-                    ui.set_status(format!("{name} ile gorusuluyor").into());
-                    ui.set_contact_name(name.into());
+                if let Some(ui) = weak_greeting.upgrade() {
+                    ui.set_status("Seni dinliyorum...".into());
+                    ui.set_contact_name(greeting_name.into());
                     ui.set_last_reply(greeting.into());
                     ui.set_in_call(true);
+                    ui.set_listening(true);
                 }
             });
+
+            loop {
+                let is_active = call_slot
+                    .lock()
+                    .expect("call slot")
+                    .as_ref()
+                    .is_some_and(|active| active == &call_id);
+                if !is_active {
+                    break;
+                }
+
+                let listen_url = format!("http://127.0.0.1:8090/calls/{call_id}/listen");
+                let Some(reply) = post_json(&listen_url, "{}") else {
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+                    continue;
+                };
+                let heard = reply["heard_text"]
+                    .as_str()
+                    .unwrap_or("Seni duyamadim")
+                    .to_string();
+                let answer = reply["reply"]
+                    .as_str()
+                    .unwrap_or("Biraz daha yakindan tekrar soyler misin?")
+                    .to_string();
+                if heard == "Seni duyamadim" {
+                    continue;
+                }
+                let weak_status = weak.clone();
+                let heard_status = heard.clone();
+                let answer_status = answer.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = weak_status.upgrade() {
+                        ui.set_listening(false);
+                        ui.set_status(format!("Duydum: {heard_status}").into());
+                        ui.set_last_reply(answer_status.into());
+                    }
+                });
+                play_reply(&reply);
+                let weak_listen = weak.clone();
+                let name_listen = name.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = weak_listen.upgrade() {
+                        ui.set_listening(true);
+                        ui.set_status(format!("{name_listen} seni dinliyor...").into());
+                    }
+                });
+            }
         });
     });
 
@@ -153,7 +206,10 @@ fn main() -> Result<(), slint::PlatformError> {
                 return;
             };
             play_reply(&reply);
-            let answer = reply["reply"].as_str().unwrap_or("Seni dinliyorum").to_string();
+            let answer = reply["reply"]
+                .as_str()
+                .unwrap_or("Seni dinliyorum")
+                .to_string();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(ui) = weak.upgrade() {
                     ui.set_last_reply(answer.into());
