@@ -48,13 +48,20 @@ fi
 sudo rm -rf \
   /var/lib/waydroid \
   /etc/waydroid-extra \
+  /var/lib/misc/dnsmasq.waydroid0.leases \
   "$USER_HOME/.local/share/waydroid" \
   "$USER_HOME/.config/waydroid" \
-  "$USER_HOME/.cache/waydroid"
+  "$USER_HOME/.cache/waydroid" \
+  "$USER_HOME/pi-apps/apps/Waydroid" \
+  "$USER_HOME/pi-apps/logs/install-incomplete-Waydroid.log1" \
+  "$USER_HOME/pi-apps/logs/install-fail-Waydroid.log" \
+  "$USER_HOME/pi-apps/logs/install-success-Waydroid.log2" \
+  "$USER_HOME/Desktop/Waydroid.desktop"
 
 echo "Removing legacy Python runtime and local AI models..."
 rm -rf "$REPO_DIR/backend/.venv"
 sudo rm -rf /opt/pi-tablet-ai
+sudo find /var/lib/pi-tablet-rust/audio -maxdepth 1 -type f -name '*.mp3' -delete
 rm -f \
   "$USER_HOME/pi-tablet-phone-autostart.log" \
   "$USER_HOME/.local/share/pi-tablet-rust-rollback/labwc-autostart.before-rust"
