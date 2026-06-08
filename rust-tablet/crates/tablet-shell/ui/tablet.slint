@@ -43,6 +43,7 @@ export component TabletShell inherits Window {
     in-out property <bool> listening: false;
     in-out property <string> phone-view: "keypad";
     callback open-app(string);
+    callback phone-tone(string);
     callback start-call(string);
     callback send-message(string);
     callback listen;
@@ -78,18 +79,18 @@ export component TabletShell inherits Window {
                 GridLayout {
                     height: 212px;
                     spacing: 3px;
-                    DialKey { row: 0; col: 0; digit: "1"; letters: ""; clicked => { dialed += "1"; } }
-                    DialKey { row: 0; col: 1; digit: "2"; letters: "ABC"; clicked => { dialed += "2"; } }
-                    DialKey { row: 0; col: 2; digit: "3"; letters: "DEF"; clicked => { dialed += "3"; } }
-                    DialKey { row: 1; col: 0; digit: "4"; letters: "GHI"; clicked => { dialed += "4"; } }
-                    DialKey { row: 1; col: 1; digit: "5"; letters: "JKL"; clicked => { dialed += "5"; } }
-                    DialKey { row: 1; col: 2; digit: "6"; letters: "MNO"; clicked => { dialed += "6"; } }
-                    DialKey { row: 2; col: 0; digit: "7"; letters: "PQRS"; clicked => { dialed += "7"; } }
-                    DialKey { row: 2; col: 1; digit: "8"; letters: "TUV"; clicked => { dialed += "8"; } }
-                    DialKey { row: 2; col: 2; digit: "9"; letters: "WXYZ"; clicked => { dialed += "9"; } }
-                    DialKey { row: 3; col: 0; digit: "*"; letters: ""; clicked => { dialed += "*"; } }
-                    DialKey { row: 3; col: 1; digit: "0"; letters: "+"; clicked => { dialed += "0"; } }
-                    DialKey { row: 3; col: 2; digit: "#"; letters: ""; clicked => { dialed += "#"; } }
+                    DialKey { row: 0; col: 0; digit: "1"; letters: ""; clicked => { dialed += "1"; root.phone-tone("1"); } }
+                    DialKey { row: 0; col: 1; digit: "2"; letters: "ABC"; clicked => { dialed += "2"; root.phone-tone("2"); } }
+                    DialKey { row: 0; col: 2; digit: "3"; letters: "DEF"; clicked => { dialed += "3"; root.phone-tone("3"); } }
+                    DialKey { row: 1; col: 0; digit: "4"; letters: "GHI"; clicked => { dialed += "4"; root.phone-tone("4"); } }
+                    DialKey { row: 1; col: 1; digit: "5"; letters: "JKL"; clicked => { dialed += "5"; root.phone-tone("5"); } }
+                    DialKey { row: 1; col: 2; digit: "6"; letters: "MNO"; clicked => { dialed += "6"; root.phone-tone("6"); } }
+                    DialKey { row: 2; col: 0; digit: "7"; letters: "PQRS"; clicked => { dialed += "7"; root.phone-tone("7"); } }
+                    DialKey { row: 2; col: 1; digit: "8"; letters: "TUV"; clicked => { dialed += "8"; root.phone-tone("8"); } }
+                    DialKey { row: 2; col: 2; digit: "9"; letters: "WXYZ"; clicked => { dialed += "9"; root.phone-tone("9"); } }
+                    DialKey { row: 3; col: 0; digit: "*"; letters: ""; clicked => { dialed += "*"; root.phone-tone("star"); } }
+                    DialKey { row: 3; col: 1; digit: "0"; letters: "+"; clicked => { dialed += "0"; root.phone-tone("0"); } }
+                    DialKey { row: 3; col: 2; digit: "#"; letters: ""; clicked => { dialed += "#"; root.phone-tone("hash"); } }
                 }
                 HorizontalLayout {
                     height: 58px;

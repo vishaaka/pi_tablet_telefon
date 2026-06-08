@@ -9,6 +9,22 @@ fn launch(program: &str, args: &[&str]) {
     let _ = Command::new(program).args(args).spawn();
 }
 
+fn play_phone_sound(name: &str, looping: bool) {
+    let path = format!("/opt/pi-tablet-rust/sounds/{name}.wav");
+    let mut command = Command::new("ffplay");
+    command.args(["-nodisp", "-autoexit", "-loglevel", "error", "-volume", "100"]);
+    if looping {
+        command.args(["-stream_loop", "-1"]);
+    }
+    let _ = command.arg(path).spawn();
+}
+
+fn stop_ringback() {
+    let _ = Command::new("pkill")
+        .args(["-f", "/opt/pi-tablet-rust/sounds/ringback.wav"])
+        .status();
+}
+
 fn post_json(url: &str, body: &str) -> Option<serde_json::Value> {
     let output = Command::new("curl")
         .args([
@@ -46,6 +62,10 @@ fn main() -> Result<(), slint::PlatformError> {
     ui.window().set_fullscreen(true);
     let active_call = Arc::new(Mutex::new(None::<String>));
 
+    ui.on_phone_tone(move |tone| {
+        play_phone_sound(&format!("dtmf-{tone}"), false);
+    });
+
     let weak = ui.as_weak();
     ui.on_open_app(move |app| {
         match app.as_str() {
@@ -68,6 +88,8 @@ fn main() -> Result<(), slint::PlatformError> {
         let weak = weak.clone();
         let call_slot = call_slot.clone();
         std::thread::spawn(move || {
+            stop_ringback();
+            play_phone_sound("ringback", true);
             let phone = number.as_str();
             let body = if phone.is_empty() {
                 r#"{"contact_id":"asya"}"#.to_string()
@@ -75,6 +97,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 format!(r#"{{"phone":"{phone}"}}"#)
             };
             let Some(start) = post_json("http://127.0.0.1:8090/calls/start", &body) else {
+                stop_ringback();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(ui) = weak.upgrade() {
                         ui.set_status("Rust backend bulunamadi".into());
@@ -83,6 +106,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 return;
             };
             let Some(call_id) = start["call_id"].as_str().map(ToOwned::to_owned) else {
+                stop_ringback();
                 return;
             };
             *call_slot.lock().expect("call slot") = Some(call_id.clone());
@@ -90,6 +114,10 @@ fn main() -> Result<(), slint::PlatformError> {
                 .as_str()
                 .unwrap_or("AI kisi")
                 .to_string();
+            std::thread::sleep(std::time::Duration::from_millis(2200));
+            stop_ringback();
+            play_phone_sound("connect", false);
+            std::thread::sleep(std::time::Duration::from_millis(250));
             let message_url = format!("http://127.0.0.1:8090/calls/{call_id}/message");
             let reply = post_json(&message_url, r#"{"text":"Merhaba"}"#);
             if let Some(reply) = reply.as_ref() {
@@ -170,6 +198,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let weak = ui.as_weak();
     ui.on_end_call(move || {
+        stop_ringback();
         if let Some(call_id) = active_call.lock().expect("call slot").take() {
             let url = format!("http://127.0.0.1:8090/calls/{call_id}/end");
             std::thread::spawn(move || {
@@ -179,6 +208,7 @@ fn main() -> Result<(), slint::PlatformError> {
         let _ = Command::new("pkill")
             .args(["-f", "ffplay.*127.0.0.1:8090"])
             .status();
+        play_phone_sound("end", false);
         if let Some(ui) = weak.upgrade() {
             ui.set_in_call(false);
             ui.set_listening(false);
