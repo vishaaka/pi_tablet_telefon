@@ -9,7 +9,7 @@ The native Rust tablet runs directly on Raspberry Pi OS and removes Waydroid fro
 - Chromium kiosk launcher for YouTube Kids
 - Native GCompris and Tux Paint launchers
 - Existing Hailo camera inference support on the host
-- Existing Python backend retained during the transition
+- Native espeak-ng Turkish speech with per-contact pitch and speed
 
 ## Safety
 
@@ -32,6 +32,20 @@ sudo reboot
 ```
 
 The migration disables Waydroid services but does not remove Waydroid files. This makes rollback quick and preserves the verified USB backup as the final recovery option.
+
+## Remove The Legacy Runtime
+
+After verifying the Rust kiosk, permanently remove the old Waydroid, Python backend,
+virtual environment, and local AI model files:
+
+```bash
+cd ~/pi_tablet_telefon
+bash device/scripts/remove-legacy-tablet-system.sh
+sudo reboot
+```
+
+This operation requires and verifies the USB backup before deleting anything. After
+cleanup, rollback must be performed from that USB backup.
 
 ## Resource Measurement
 

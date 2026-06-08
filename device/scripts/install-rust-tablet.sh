@@ -26,7 +26,7 @@ sudo apt update
 sudo apt install -y \
   build-essential pkg-config curl \
   libfontconfig1-dev libwayland-dev libxkbcommon-dev libudev-dev libinput-dev libgl1-mesa-dev \
-  chromium gcompris-qt tuxpaint ffmpeg
+  chromium gcompris-qt tuxpaint ffmpeg espeak-ng
 
 if [ ! -x "$USER_HOME/.cargo/bin/cargo" ]; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
@@ -54,7 +54,6 @@ User=$USER_NAME
 Group=$USER_NAME
 Environment=HOME=$USER_HOME
 Environment=PI_TABLET_AUDIO_DIR=/var/lib/pi-tablet-rust/audio
-Environment=PI_EDGE_TTS_COMMAND=$REPO_DIR/backend/.venv/bin/edge-tts
 ExecStart=$INSTALL_DIR/bin/pi-tablet-backend-rs
 Restart=always
 RestartSec=2

@@ -278,25 +278,29 @@ async fn synthesize(
     contact: &Contact,
     text: &str,
 ) -> (Option<String>, Option<&'static str>) {
-    let voice = if contact.voice.contains("male") {
-        "tr-TR-AhmetNeural"
-    } else {
-        "tr-TR-EmelNeural"
+    let (pitch, speed) = match contact.voice {
+        "soft_female" => ("62", "155"),
+        "bright_female" => ("72", "170"),
+        "calm_female" => ("55", "145"),
+        "warm_male" => ("42", "165"),
+        "deep_male" => ("28", "140"),
+        "clear_male" => ("48", "175"),
+        _ => ("55", "155"),
     };
-    let key = format!("{voice}|{text}");
-    let name = format!("{:x}.mp3", Sha256::digest(key.as_bytes()));
+    let key = format!("espeak-ng|{pitch}|{speed}|{text}");
+    let name = format!("{:x}.wav", Sha256::digest(key.as_bytes()));
     let target = audio_dir.join(&name);
     if target.is_file() {
-        return (Some(format!("/audio/{name}")), Some("edge-tts-cache"));
+        return (Some(format!("/audio/{name}")), Some("espeak-ng-cache"));
     }
-    let edge_tts = std::env::var("PI_EDGE_TTS_COMMAND").unwrap_or_else(|_| "edge-tts".into());
-    let status = Command::new(edge_tts)
-        .args(["--voice", voice, "--text", text, "--write-media"])
+    let status = Command::new("espeak-ng")
+        .args(["-v", "tr", "-p", pitch, "-s", speed, "-w"])
         .arg(&target)
+        .arg(text)
         .status()
         .await;
     if status.is_ok_and(|value| value.success()) {
-        (Some(format!("/audio/{name}")), Some("edge-tts"))
+        (Some(format!("/audio/{name}")), Some("espeak-ng"))
     } else {
         (None, None)
     }
