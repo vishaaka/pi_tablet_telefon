@@ -26,6 +26,21 @@ fn post_json(url: &str, body: &str) -> Option<serde_json::Value> {
     serde_json::from_slice(&output.stdout).ok()
 }
 
+fn play_reply(reply: &serde_json::Value) {
+    if let Some(audio_url) = reply["audio_url"].as_str() {
+        launch(
+            "ffplay",
+            &[
+                "-nodisp",
+                "-autoexit",
+                "-loglevel",
+                "error",
+                &format!("http://127.0.0.1:8090{audio_url}"),
+            ],
+        );
+    }
+}
+
 fn main() -> Result<(), slint::PlatformError> {
     let ui = TabletShell::new()?;
     ui.window().set_fullscreen(true);
@@ -35,14 +50,8 @@ fn main() -> Result<(), slint::PlatformError> {
     ui.on_open_app(move |app| {
         match app.as_str() {
             "youtube-kids" => launch(
-                "chromium",
-                &[
-                    "--kiosk",
-                    "--noerrdialogs",
-                    "--disable-infobars",
-                    "--no-first-run",
-                    "https://www.youtubekids.com",
-                ],
+                "/opt/pi-tablet-rust/bin/launch-youtube-kids",
+                &[],
             ),
             "gcompris" => launch("gcompris-qt", &["--fullscreen"]),
             "tuxpaint" => launch("tuxpaint", &["--fullscreen", "--nosysfonts"]),
@@ -83,22 +92,43 @@ fn main() -> Result<(), slint::PlatformError> {
                 .to_string();
             let message_url = format!("http://127.0.0.1:8090/calls/{call_id}/message");
             let reply = post_json(&message_url, r#"{"text":"Merhaba"}"#);
-            if let Some(audio_url) = reply.as_ref().and_then(|value| value["audio_url"].as_str()) {
-                launch(
-                    "ffplay",
-                    &[
-                        "-nodisp",
-                        "-autoexit",
-                        "-loglevel",
-                        "error",
-                        &format!("http://127.0.0.1:8090{audio_url}"),
-                    ],
-                );
+            if let Some(reply) = reply.as_ref() {
+                play_reply(reply);
             }
+            let greeting = reply
+                .and_then(|value| value["reply"].as_str().map(ToOwned::to_owned))
+                .unwrap_or_else(|| "Merhaba".into());
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(ui) = weak.upgrade() {
                     ui.set_status(format!("{name} ile gorusuluyor").into());
+                    ui.set_contact_name(name.into());
+                    ui.set_last_reply(greeting.into());
                     ui.set_in_call(true);
+                }
+            });
+        });
+    });
+
+    let weak = ui.as_weak();
+    let call_slot = active_call.clone();
+    ui.on_send_message(move |text| {
+        let weak = weak.clone();
+        let call_slot = call_slot.clone();
+        let text = text.to_string();
+        std::thread::spawn(move || {
+            let Some(call_id) = call_slot.lock().expect("call slot").clone() else {
+                return;
+            };
+            let url = format!("http://127.0.0.1:8090/calls/{call_id}/message");
+            let body = serde_json::json!({ "text": text }).to_string();
+            let Some(reply) = post_json(&url, &body) else {
+                return;
+            };
+            play_reply(&reply);
+            let answer = reply["reply"].as_str().unwrap_or("Seni dinliyorum").to_string();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = weak.upgrade() {
+                    ui.set_last_reply(answer.into());
                 }
             });
         });
@@ -117,6 +147,8 @@ fn main() -> Result<(), slint::PlatformError> {
             .status();
         if let Some(ui) = weak.upgrade() {
             ui.set_in_call(false);
+            ui.set_contact_name("".into());
+            ui.set_last_reply("".into());
             ui.set_status("Gorusme sonlandi".into());
         }
     });

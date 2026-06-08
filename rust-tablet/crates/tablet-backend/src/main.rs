@@ -247,20 +247,58 @@ fn quick_reply(contact: &Contact, text: &str, call: &mut Call) -> String {
     let normalized = text.to_lowercase();
     call.turn += 1;
     if normalized.contains("merhaba") || normalized.contains("selam") {
-        return format!(
-            "Merhaba, ben {}. Bugun ne konusmak istersin?",
-            contact.name.trim_end_matches(" AI")
-        );
+        return greeting(contact);
     }
     if normalized.contains("nasilsin") || normalized.contains("nasılsın") {
-        return "Iyiyim, tesekkur ederim. Senin gunun nasil gidiyor?".into();
+        return match contact.id {
+            "asya" => "Iyiyim, tesekkur ederim. Bugun seni mutlu eden ne oldu?".into(),
+            "deniz" => "Enerjim yerinde. Bugun birlikte ilginc bir sey kesfedelim mi?".into(),
+            "mira" => "Cok iyiyim. Seninle konusmak gunumu guzellestirdi.".into(),
+            "atlas" => "Iyiyim. Bugun icin guzel bir plan yapmaya hazirim.".into(),
+            "zeynep" => "Iyiyim canim. Senin gunun nasil geciyor?".into(),
+            "kerem" => "Gayet iyiyim. Bugun yeni bir kelime ogrenmeye ne dersin?".into(),
+            _ => "Iyiyim, tesekkur ederim. Sen nasilsin?".into(),
+        };
     }
-    if normalized.contains("sikildim") || normalized.contains("sıkıldım") {
+    if normalized.contains("sikildim")
+        || normalized.contains("sıkıldım")
+        || normalized.contains("oyun")
+    {
         call.last_topic = "oyun".into();
-        return "Bir bilmece ya da kisa hikaye secmek ister misin?".into();
+        return match contact.id {
+            "deniz" => "Hizli oyun: Etrafinda mavi renkli bir sey bulabilir misin?".into(),
+            "kerem" => "Kelime oyunu oynayalim. Ben elma diyorum, sen a harfiyle bir kelime soyle."
+                .into(),
+            _ => "Bir bilmece ya da kisa hikaye secmek ister misin?".into(),
+        };
     }
-    if normalized.trim() == "evet" && call.last_topic == "oyun" {
+    if normalized.contains("bilmece")
+        || (normalized.trim() == "evet" && call.last_topic == "oyun")
+    {
+        call.last_topic = "bilmece".into();
         return "Harika. Agzi var konusmaz, yatagi var uyumaz. Nedir?".into();
+    }
+    if normalized.contains("hikaye") {
+        call.last_topic = "hikaye".into();
+        return match contact.id {
+            "mira" => "Minik bir yildiz, karanlikta yolunu arayan kuslara isik olmus. Kuslar da ona en guzel sarkilarini soylemis.".into(),
+            "atlas" => "Kucuk bir gezgin her gun bir adim atmis. Sabirla yuruyunce sonunda hayalindeki tepeye ulasmis.".into(),
+            _ => "Minik bir bulut, susayan ciceklere yagmur tasimis. Cicekler acinca gokyuzu rengarenk olmus.".into(),
+        };
+    }
+    if normalized.contains("bugun") || normalized.contains("ne yapalim") {
+        return match contact.id {
+            "asya" => "Bugun once sevdigin bir oyunu oynayip sonra kisa bir hikaye okuyabiliriz.".into(),
+            "deniz" => "Bugun basit bir deney yapalim: Hangi esyalar suyun ustunde kaliyor, tahmin edelim.".into(),
+            "mira" => "Bugun bir resim cizip ona komik bir isim verebiliriz.".into(),
+            "atlas" => "Uc adimli plan: oyun, dinlenme ve yeni bir sey ogrenme.".into(),
+            "zeynep" => "Bugun sevdigin birine guzel bir soz soylemekle baslayabiliriz.".into(),
+            "kerem" => "Bugun uc yeni kelime ogrenelim: hello merhaba, sun gunes, friend arkadas.".into(),
+            _ => "Bugun guzel bir oyun secerek baslayabiliriz.".into(),
+        };
+    }
+    if normalized.contains("tesekkur") || normalized.contains("teşekkür") {
+        return "Rica ederim. Seninle konusmak cok guzel.".into();
     }
     call.last_topic = text
         .split_whitespace()
@@ -271,6 +309,21 @@ fn quick_reply(contact: &Contact, text: &str, call: &mut Call) -> String {
         "{} demen ilgimi cekti. Biraz daha anlatir misin?",
         call.last_topic
     )
+}
+
+fn greeting(contact: &Contact) -> String {
+    match contact.id {
+        "asya" => "Merhaba, ben Asya. Seni dinliyorum, bugun ne konusmak istersin?".into(),
+        "deniz" => "Selam, Deniz burada. Hazirsan birlikte yeni bir sey kesfedelim.".into(),
+        "mira" => "Merhaba, ben Mira. Seninle sohbet etmeye cok sevindim.".into(),
+        "atlas" => "Merhaba, ben Atlas. Bugun icin birlikte guzel bir plan yapabiliriz.".into(),
+        "zeynep" => "Merhaba canim, ben Zeynep. Gununu bana anlatmak ister misin?".into(),
+        "kerem" => "Hello, merhaba. Ben Kerem. Birlikte kelime oyunu oynayabiliriz.".into(),
+        _ => format!(
+            "Merhaba, ben {}. Bugun ne konusmak istersin?",
+            contact.name.trim_end_matches(" AI")
+        ),
+    }
 }
 
 async fn synthesize(

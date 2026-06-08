@@ -40,6 +40,7 @@ CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}" cargo build --release
 sudo mkdir -p "$INSTALL_DIR/bin" /var/lib/pi-tablet-rust/audio
 sudo install -m 0755 target/release/pi-tablet-shell "$INSTALL_DIR/bin/pi-tablet-shell"
 sudo install -m 0755 target/release/pi-tablet-backend-rs "$INSTALL_DIR/bin/pi-tablet-backend-rs"
+sudo install -m 0755 "$REPO_DIR/device/scripts/launch-youtube-kids.sh" "$INSTALL_DIR/bin/launch-youtube-kids"
 sudo chown -R "$USER_NAME:$USER_NAME" /var/lib/pi-tablet-rust
 
 sudo tee "$SERVICE_FILE" >/dev/null <<SERVICE

@@ -24,8 +24,11 @@ export component TabletShell inherits Window {
     in-out property <string> dialed: "";
     in-out property <string> status: "Hazir";
     in-out property <bool> in-call: false;
+    in-out property <string> contact-name: "";
+    in-out property <string> last-reply: "";
     callback open-app(string);
     callback start-call(string);
+    callback send-message(string);
     callback end-call;
 
     VerticalLayout {
@@ -55,10 +58,40 @@ export component TabletShell inherits Window {
             HorizontalLayout {
                 spacing: 8px;
                 Button { text: "Asya AI"; clicked => { dialed = ""; root.start-call(""); } }
+                Button { text: "Deniz AI"; clicked => { dialed = "+905332022020"; root.start-call(dialed); } }
                 Button { text: "Mira AI"; clicked => { dialed = "+905343033030"; root.start-call(dialed); } }
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                Button { text: "Atlas AI"; clicked => { dialed = "+905354044040"; root.start-call(dialed); } }
+                Button { text: "Zeynep AI"; clicked => { dialed = "+905365055050"; root.start-call(dialed); } }
+                Button { text: "Kerem AI"; clicked => { dialed = "+905376066060"; root.start-call(dialed); } }
+            }
+            if in-call: Rectangle {
+                background: #e8f6ef;
+                border-radius: 8px;
+                height: 86px;
+                VerticalLayout {
+                    padding: 10px;
+                    Text { text: contact-name; font-size: 18px; font-weight: 700; color: #125f3d; }
+                    Text { text: last-reply; font-size: 14px; color: #27332d; wrap: word-wrap; }
+                }
+            }
+            if in-call: HorizontalLayout {
+                spacing: 6px;
+                Button { text: "Nasilsin?"; clicked => { root.send-message("Nasilsin?"); } }
+                Button { text: "Ne yapalim?"; clicked => { root.send-message("Bugun ne yapalim?"); } }
+                Button { text: "Oyun"; clicked => { root.send-message("Oyun oynayalim"); } }
+            }
+            if in-call: HorizontalLayout {
+                spacing: 6px;
+                Button { text: "Bilmece"; clicked => { root.send-message("Bilmece sor"); } }
+                Button { text: "Hikaye"; clicked => { root.send-message("Kisa hikaye anlat"); } }
+                Button { text: "Tesekkur"; clicked => { root.send-message("Tesekkur ederim"); } }
             }
             GridLayout {
                 spacing: 8px;
+                visible: !in-call;
                 Button { row: 0; col: 0; text: "1"; clicked => { dialed += "1"; } }
                 Button { row: 0; col: 1; text: "2"; clicked => { dialed += "2"; } }
                 Button { row: 0; col: 2; text: "3"; clicked => { dialed += "3"; } }
