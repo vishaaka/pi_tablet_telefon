@@ -23,7 +23,10 @@ export component TabletShell inherits Window {
     in-out property <string> screen: "home";
     in-out property <string> dialed: "";
     in-out property <string> status: "Hazir";
+    in-out property <bool> in-call: false;
     callback open-app(string);
+    callback start-call(string);
+    callback end-call;
 
     VerticalLayout {
         padding: 18px;
@@ -49,6 +52,11 @@ export component TabletShell inherits Window {
         if screen == "phone": VerticalLayout {
             spacing: 10px;
             Text { text: dialed == "" ? "Numara girin" : dialed; font-size: 38px; horizontal-alignment: center; color: #151519; height: 56px; }
+            HorizontalLayout {
+                spacing: 8px;
+                Button { text: "Asya AI"; clicked => { dialed = ""; root.start-call(""); } }
+                Button { text: "Mira AI"; clicked => { dialed = "+905343033030"; root.start-call(dialed); } }
+            }
             GridLayout {
                 spacing: 8px;
                 Button { row: 0; col: 0; text: "1"; clicked => { dialed += "1"; } }
@@ -67,7 +75,8 @@ export component TabletShell inherits Window {
             HorizontalLayout {
                 spacing: 10px;
                 Button { text: "Sil"; clicked => { dialed = ""; } }
-                Button { text: "Ara"; clicked => { status = dialed == "" ? "Asya AI araniyor..." : dialed + " araniyor..."; } }
+                if !in-call: Button { text: "Ara"; clicked => { status = dialed == "" ? "Asya AI araniyor..." : dialed + " araniyor..."; root.start-call(dialed); } }
+                if in-call: Button { text: "Kapat"; clicked => { root.end-call(); } }
             }
         }
 

@@ -26,7 +26,7 @@ sudo apt update
 sudo apt install -y \
   cargo rustc build-essential pkg-config \
   libfontconfig1-dev libwayland-dev libxkbcommon-dev libudev-dev libinput-dev libgl1-mesa-dev \
-  chromium gcompris-qt tuxpaint
+  chromium gcompris-qt tuxpaint ffmpeg curl
 
 cd "$REPO_DIR/rust-tablet"
 CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}" cargo build --release
@@ -48,6 +48,7 @@ User=$USER_NAME
 Group=$USER_NAME
 Environment=HOME=$USER_HOME
 Environment=PI_TABLET_AUDIO_DIR=/var/lib/pi-tablet-rust/audio
+Environment=PI_EDGE_TTS_COMMAND=$REPO_DIR/backend/.venv/bin/edge-tts
 ExecStart=$INSTALL_DIR/bin/pi-tablet-backend-rs
 Restart=always
 RestartSec=2

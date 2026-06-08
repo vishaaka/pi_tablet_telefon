@@ -289,7 +289,8 @@ async fn synthesize(
     if target.is_file() {
         return (Some(format!("/audio/{name}")), Some("edge-tts-cache"));
     }
-    let status = Command::new("edge-tts")
+    let edge_tts = std::env::var("PI_EDGE_TTS_COMMAND").unwrap_or_else(|_| "edge-tts".into());
+    let status = Command::new(edge_tts)
         .args(["--voice", voice, "--text", text, "--write-media"])
         .arg(&target)
         .status()
