@@ -75,7 +75,8 @@ sudo systemctl disable --now pi-tablet-phone-autostart.service 2>/dev/null || tr
 sudo systemctl disable --now waydroid-container.service 2>/dev/null || true
 waydroid session stop 2>/dev/null || true
 sudo systemctl daemon-reload
-sudo systemctl enable --now pi-tablet-backend-rust.service
+sudo systemctl enable pi-tablet-backend-rust.service
+sudo systemctl restart pi-tablet-backend-rust.service
 
 echo "Rust tablet installed."
 echo "Backend: http://127.0.0.1:8090/health"
