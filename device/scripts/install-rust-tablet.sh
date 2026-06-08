@@ -26,9 +26,14 @@ sudo apt update
 sudo apt install -y \
   build-essential pkg-config curl \
   libfontconfig1-dev libwayland-dev libxkbcommon-dev libudev-dev libinput-dev libgl1-mesa-dev \
-  chromium gcompris-qt tuxpaint ffmpeg espeak-ng
+  chromium gcompris-qt tuxpaint ffmpeg espeak-ng python3-venv
 
 bash "$REPO_DIR/device/scripts/install-rust-stt.sh"
+
+if [ ! -x "$INSTALL_DIR/edge-tts/bin/edge-tts" ]; then
+  sudo python3 -m venv "$INSTALL_DIR/edge-tts"
+  sudo "$INSTALL_DIR/edge-tts/bin/pip" install --no-cache-dir edge-tts
+fi
 
 if [ ! -x "$USER_HOME/.cargo/bin/cargo" ]; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
@@ -58,6 +63,7 @@ User=$USER_NAME
 Group=$USER_NAME
 Environment=HOME=$USER_HOME
 Environment=PI_TABLET_AUDIO_DIR=/var/lib/pi-tablet-rust/audio
+Environment=PI_EDGE_TTS_COMMAND=$INSTALL_DIR/edge-tts/bin/edge-tts
 ExecStart=$INSTALL_DIR/bin/pi-tablet-backend-rs
 Restart=always
 RestartSec=2

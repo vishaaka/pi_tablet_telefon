@@ -393,29 +393,59 @@ async fn synthesize(
     contact: &Contact,
     text: &str,
 ) -> (Option<String>, Option<&'static str>) {
-    let (pitch, speed) = match contact.voice {
-        "soft_female" => ("62", "155"),
-        "bright_female" => ("72", "170"),
-        "calm_female" => ("55", "145"),
-        "warm_male" => ("42", "165"),
-        "deep_male" => ("28", "140"),
-        "clear_male" => ("48", "175"),
-        _ => ("55", "155"),
+    let (voice, rate, edge_pitch, local_pitch, local_speed) = match contact.voice {
+        "soft_female" => ("tr-TR-EmelNeural", "-6%", "-2Hz", "62", "155"),
+        "bright_female" => ("tr-TR-EmelNeural", "+8%", "+5Hz", "72", "170"),
+        "calm_female" => ("tr-TR-EmelNeural", "-12%", "-5Hz", "55", "145"),
+        "warm_male" => ("tr-TR-AhmetNeural", "+4%", "+2Hz", "42", "165"),
+        "deep_male" => ("tr-TR-AhmetNeural", "-12%", "-8Hz", "28", "140"),
+        "clear_male" => ("tr-TR-AhmetNeural", "+10%", "+5Hz", "48", "175"),
+        _ => ("tr-TR-EmelNeural", "+0%", "+0Hz", "55", "155"),
     };
-    let key = format!("espeak-ng|{pitch}|{speed}|{text}");
-    let name = format!("{:x}.wav", Sha256::digest(key.as_bytes()));
-    let target = audio_dir.join(&name);
-    if target.is_file() {
-        return (Some(format!("/audio/{name}")), Some("espeak-ng-cache"));
+    let edge_key = format!("edge-tts|{voice}|{rate}|{edge_pitch}|{text}");
+    let edge_name = format!("{:x}.mp3", Sha256::digest(edge_key.as_bytes()));
+    let edge_target = audio_dir.join(&edge_name);
+    if edge_target.is_file() {
+        return (Some(format!("/audio/{edge_name}")), Some("edge-tts-cache"));
+    }
+    let edge_tts = std::env::var("PI_EDGE_TTS_COMMAND")
+        .unwrap_or_else(|_| "/opt/pi-tablet-rust/edge-tts/bin/edge-tts".into());
+    let edge_status = Command::new(edge_tts)
+        .args([
+            "--voice",
+            voice,
+            "--rate",
+            rate,
+            "--pitch",
+            edge_pitch,
+            "--text",
+            text,
+            "--write-media",
+        ])
+        .arg(&edge_target)
+        .status()
+        .await;
+    if edge_status.is_ok_and(|value| value.success()) {
+        return (Some(format!("/audio/{edge_name}")), Some("edge-tts"));
+    }
+
+    let local_key = format!("espeak-ng|{local_pitch}|{local_speed}|{text}");
+    let local_name = format!("{:x}.wav", Sha256::digest(local_key.as_bytes()));
+    let local_target = audio_dir.join(&local_name);
+    if local_target.is_file() {
+        return (
+            Some(format!("/audio/{local_name}")),
+            Some("espeak-ng-cache"),
+        );
     }
     let status = Command::new("espeak-ng")
-        .args(["-v", "tr", "-p", pitch, "-s", speed, "-w"])
-        .arg(&target)
+        .args(["-v", "tr", "-p", local_pitch, "-s", local_speed, "-w"])
+        .arg(&local_target)
         .arg(text)
         .status()
         .await;
     if status.is_ok_and(|value| value.success()) {
-        (Some(format!("/audio/{name}")), Some("espeak-ng"))
+        (Some(format!("/audio/{local_name}")), Some("espeak-ng"))
     } else {
         (None, None)
     }

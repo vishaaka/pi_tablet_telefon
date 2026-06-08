@@ -17,6 +17,20 @@ component AppTile inherits Rectangle {
     }
 }
 
+component DialKey inherits Rectangle {
+    in property <string> digit;
+    in property <string> letters;
+    callback clicked;
+    background: transparent;
+    height: 48px;
+    TouchArea { clicked => { root.clicked(); } }
+    VerticalLayout {
+        spacing: 0px;
+        Text { text: digit; font-size: 29px; horizontal-alignment: center; color: #111115; }
+        Text { text: letters; font-size: 10px; horizontal-alignment: center; color: #888891; }
+    }
+}
+
 export component TabletShell inherits Window {
     title: "Pi Tablet";
     background: #f7f7fa;
@@ -27,6 +41,7 @@ export component TabletShell inherits Window {
     in-out property <string> contact-name: "";
     in-out property <string> last-reply: "";
     in-out property <bool> listening: false;
+    in-out property <string> phone-view: "keypad";
     callback open-app(string);
     callback start-call(string);
     callback send-message(string);
@@ -39,6 +54,7 @@ export component TabletShell inherits Window {
 
         HorizontalLayout {
             height: 44px;
+            if screen != "home": Button { text: "<"; width: 48px; clicked => { screen = "home"; in-call = false; root.end-call(); } }
             Text { text: screen == "home" ? "Pi Tablet" : screen == "phone" ? "Telefon" : "Uygulamalar"; font-size: 28px; font-weight: 700; color: #111115; }
             Text { horizontal-stretch: 1; text: status; horizontal-alignment: right; vertical-alignment: center; color: #676772; font-size: 13px; }
         }
@@ -55,19 +71,60 @@ export component TabletShell inherits Window {
         }
 
         if screen == "phone": VerticalLayout {
-            spacing: 10px;
-            Text { text: dialed == "" ? "Numara girin" : dialed; font-size: 38px; horizontal-alignment: center; color: #151519; height: 56px; }
-            HorizontalLayout {
-                spacing: 8px;
-                Button { text: "Asya AI"; clicked => { dialed = ""; root.start-call(""); } }
-                Button { text: "Deniz AI"; clicked => { dialed = "+905332022020"; root.start-call(dialed); } }
-                Button { text: "Mira AI"; clicked => { dialed = "+905343033030"; root.start-call(dialed); } }
+            spacing: 6px;
+            if !in-call && phone-view == "keypad": VerticalLayout {
+                spacing: 5px;
+                Rectangle { height: 44px; background: transparent; Text { text: dialed; font-size: 30px; horizontal-alignment: center; vertical-alignment: center; color: #151519; } }
+                GridLayout {
+                    height: 212px;
+                    spacing: 3px;
+                    DialKey { row: 0; col: 0; digit: "1"; letters: ""; clicked => { dialed += "1"; } }
+                    DialKey { row: 0; col: 1; digit: "2"; letters: "ABC"; clicked => { dialed += "2"; } }
+                    DialKey { row: 0; col: 2; digit: "3"; letters: "DEF"; clicked => { dialed += "3"; } }
+                    DialKey { row: 1; col: 0; digit: "4"; letters: "GHI"; clicked => { dialed += "4"; } }
+                    DialKey { row: 1; col: 1; digit: "5"; letters: "JKL"; clicked => { dialed += "5"; } }
+                    DialKey { row: 1; col: 2; digit: "6"; letters: "MNO"; clicked => { dialed += "6"; } }
+                    DialKey { row: 2; col: 0; digit: "7"; letters: "PQRS"; clicked => { dialed += "7"; } }
+                    DialKey { row: 2; col: 1; digit: "8"; letters: "TUV"; clicked => { dialed += "8"; } }
+                    DialKey { row: 2; col: 2; digit: "9"; letters: "WXYZ"; clicked => { dialed += "9"; } }
+                    DialKey { row: 3; col: 0; digit: "*"; letters: ""; clicked => { dialed += "*"; } }
+                    DialKey { row: 3; col: 1; digit: "0"; letters: "+"; clicked => { dialed += "0"; } }
+                    DialKey { row: 3; col: 2; digit: "#"; letters: ""; clicked => { dialed += "#"; } }
+                }
+                HorizontalLayout {
+                    height: 58px;
+                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                    Rectangle {
+                        width: 58px;
+                        background: #0aaa68;
+                        border-radius: 29px;
+                        Text { text: "Ara"; color: white; font-size: 16px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea { clicked => { status = dialed == "" ? "Asya AI araniyor..." : dialed + " araniyor..."; root.start-call(dialed); } }
+                    }
+                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                    Button { visible: dialed != ""; width: 58px; text: "Sil"; clicked => { dialed = ""; } }
+                }
             }
-            HorizontalLayout {
+            if !in-call && phone-view == "contacts": VerticalLayout {
+                spacing: 5px;
+                Text { text: "Kisiler"; font-size: 22px; font-weight: 700; color: #151519; height: 32px; }
+                GridLayout {
+                height: 246px;
                 spacing: 8px;
-                Button { text: "Atlas AI"; clicked => { dialed = "+905354044040"; root.start-call(dialed); } }
-                Button { text: "Zeynep AI"; clicked => { dialed = "+905365055050"; root.start-call(dialed); } }
-                Button { text: "Kerem AI"; clicked => { dialed = "+905376066060"; root.start-call(dialed); } }
+                Button { row: 0; col: 0; text: "Asya AI"; clicked => { dialed = ""; root.start-call(""); } }
+                Button { row: 0; col: 1; text: "Deniz AI"; clicked => { dialed = "+905332022020"; root.start-call(dialed); } }
+                Button { row: 1; col: 0; text: "Mira AI"; clicked => { dialed = "+905343033030"; root.start-call(dialed); } }
+                Button { row: 1; col: 1; text: "Atlas AI"; clicked => { dialed = "+905354044040"; root.start-call(dialed); } }
+                Button { row: 2; col: 0; text: "Zeynep AI"; clicked => { dialed = "+905365055050"; root.start-call(dialed); } }
+                Button { row: 2; col: 1; text: "Kerem AI"; clicked => { dialed = "+905376066060"; root.start-call(dialed); } }
+                }
+            }
+            if !in-call && phone-view == "recent": VerticalLayout {
+                spacing: 8px;
+                Text { text: "Son aramalar"; font-size: 22px; font-weight: 700; color: #151519; height: 32px; }
+                Button { text: "Asya AI    Bugun"; clicked => { dialed = ""; root.start-call(""); } }
+                Button { text: "Mira AI    Dun"; clicked => { dialed = "+905343033030"; root.start-call(dialed); } }
+                Button { text: "Deniz AI    Dun"; clicked => { dialed = "+905332022020"; root.start-call(dialed); } }
             }
             if in-call: Rectangle {
                 background: #e8f6ef;
@@ -92,33 +149,24 @@ export component TabletShell inherits Window {
                 Button { text: "Hikaye"; clicked => { root.send-message("Kisa hikaye anlat"); } }
                 Button { text: "Tesekkur"; clicked => { root.send-message("Tesekkur ederim"); } }
             }
-            GridLayout {
-                spacing: 8px;
-                visible: !in-call;
-                Button { row: 0; col: 0; text: "1"; clicked => { dialed += "1"; } }
-                Button { row: 0; col: 1; text: "2"; clicked => { dialed += "2"; } }
-                Button { row: 0; col: 2; text: "3"; clicked => { dialed += "3"; } }
-                Button { row: 1; col: 0; text: "4"; clicked => { dialed += "4"; } }
-                Button { row: 1; col: 1; text: "5"; clicked => { dialed += "5"; } }
-                Button { row: 1; col: 2; text: "6"; clicked => { dialed += "6"; } }
-                Button { row: 2; col: 0; text: "7"; clicked => { dialed += "7"; } }
-                Button { row: 2; col: 1; text: "8"; clicked => { dialed += "8"; } }
-                Button { row: 2; col: 2; text: "9"; clicked => { dialed += "9"; } }
-                Button { row: 3; col: 0; text: "*"; clicked => { dialed += "*"; } }
-                Button { row: 3; col: 1; text: "0"; clicked => { dialed += "0"; } }
-                Button { row: 3; col: 2; text: "#"; clicked => { dialed += "#"; } }
-            }
             HorizontalLayout {
+                visible: in-call;
+                height: 42px;
                 spacing: 10px;
-                Button { text: "Sil"; clicked => { dialed = ""; } }
-                if !in-call: Button { text: "Ara"; clicked => { status = dialed == "" ? "Asya AI araniyor..." : dialed + " araniyor..."; root.start-call(dialed); } }
                 if in-call: Button { text: "Kapat"; clicked => { root.end-call(); } }
+            }
+            if !in-call: HorizontalLayout {
+                height: 48px;
+                spacing: 4px;
+                Button { text: "Klavye"; clicked => { phone-view = "keypad"; } }
+                Button { text: "Son aramalar"; clicked => { phone-view = "recent"; } }
+                Button { text: "Kisiler"; clicked => { phone-view = "contacts"; } }
             }
         }
 
         Rectangle { vertical-stretch: 1; background: transparent; }
 
-        HorizontalLayout {
+        if screen == "home": HorizontalLayout {
             height: 52px;
             spacing: 10px;
             Button { text: "Ana ekran"; clicked => { screen = "home"; } }
