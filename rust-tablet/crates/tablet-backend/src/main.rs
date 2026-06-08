@@ -229,7 +229,8 @@ async fn listen(
     let heard = transcribe(request.audio_path.as_deref())
         .await
         .unwrap_or_else(|| "Seni duyamadim".into());
-    reply_to_text(&state, call_id, heard.clone(), Some(heard)).await
+    let intent = voice_intent(&heard);
+    reply_to_text(&state, call_id, intent, Some(heard)).await
 }
 
 async fn end_call(State(state): State<AppState>, AxumPath(call_id): AxumPath<Uuid>) -> StatusCode {
@@ -343,6 +344,33 @@ async fn transcribe(audio_path: Option<&str>) -> Option<String> {
     }
     let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
     (!text.is_empty()).then_some(text)
+}
+
+fn voice_intent(heard: &str) -> String {
+    let normalized = heard.to_lowercase();
+    if normalized.contains("nasıl") || normalized.contains("nasil") {
+        "Nasilsin?".into()
+    } else if normalized.contains("yapalım")
+        || normalized.contains("yapalim")
+        || normalized.contains("bugün")
+        || normalized.contains("bugun")
+    {
+        "Bugun ne yapalim?".into()
+    } else if normalized.contains("oyun") || normalized.contains("oyna") {
+        "Oyun oynayalim".into()
+    } else if normalized.contains("bilmece") {
+        "Bilmece sor".into()
+    } else if normalized.contains("hikaye") || normalized.contains("hikâye") {
+        "Kisa hikaye anlat".into()
+    } else if normalized.contains("teşekkür")
+        || normalized.contains("tesekkur")
+        || normalized.contains("sağ ol")
+        || normalized.contains("sag ol")
+    {
+        "Tesekkur ederim".into()
+    } else {
+        heard.into()
+    }
 }
 
 fn greeting(contact: &Contact) -> String {
