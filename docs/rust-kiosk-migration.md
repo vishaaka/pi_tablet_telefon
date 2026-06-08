@@ -32,3 +32,9 @@ sudo reboot
 ```
 
 The migration disables Waydroid services but does not remove Waydroid files. This makes rollback quick and preserves the verified USB backup as the final recovery option.
+
+## Resource Measurement
+
+```bash
+bash device/scripts/measure-tablet-resources.sh
+```

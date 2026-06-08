@@ -24,9 +24,15 @@ fi
 
 sudo apt update
 sudo apt install -y \
-  cargo rustc build-essential pkg-config \
+  build-essential pkg-config curl \
   libfontconfig1-dev libwayland-dev libxkbcommon-dev libudev-dev libinput-dev libgl1-mesa-dev \
-  chromium gcompris-qt tuxpaint ffmpeg curl
+  chromium gcompris-qt tuxpaint ffmpeg
+
+if [ ! -x "$USER_HOME/.cargo/bin/cargo" ]; then
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
+    sh -s -- -y --profile minimal --default-toolchain stable
+fi
+export PATH="$USER_HOME/.cargo/bin:$PATH"
 
 cd "$REPO_DIR/rust-tablet"
 CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}" cargo build --release
