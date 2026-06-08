@@ -78,6 +78,8 @@ waydroid session stop 2>/dev/null || true
 sudo systemctl daemon-reload
 sudo systemctl enable pi-tablet-backend-rust.service
 sudo systemctl restart pi-tablet-backend-rust.service
+sleep 2
+bash "$REPO_DIR/device/scripts/prewarm-rust-ai-replies.sh"
 
 echo "Rust tablet installed."
 echo "Backend: http://127.0.0.1:8090/health"
