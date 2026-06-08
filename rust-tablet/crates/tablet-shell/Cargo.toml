@@ -1,0 +1,12 @@
+[package]
+name = "pi-tablet-shell"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+build = "build.rs"
+
+[dependencies]
+slint = { version = "1.16.1", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-femtovg", "renderer-software"] }
+
+[build-dependencies]
+slint-build = "1.16.1"

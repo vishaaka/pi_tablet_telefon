@@ -61,3 +61,9 @@ Ilk kurulumdan itibaren adim adim bring-up: [docs/pi-bringup-step-by-step.md](do
 MAX98357A I2S hoparlor cikisi: [docs/max98357a-audio-output.md](docs/max98357a-audio-output.md)
 
 INMP441 I2S mikrofon girisi: [docs/inmp441-i2s-mic.md](docs/inmp441-i2s-mic.md)
+
+Waydroid kullanmadan calisan dusuk bellekli Rust kiosk gecisi:
+
+- [Rust tablet workspace](rust-tablet/README.md)
+- [Rust kiosk migration](docs/rust-kiosk-migration.md)
+- [Full system backup and restore](docs/system-backup-restore.md)

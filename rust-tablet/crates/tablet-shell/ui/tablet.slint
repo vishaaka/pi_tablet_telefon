@@ -1,0 +1,84 @@
+import { Button } from "std-widgets.slint";
+
+component AppTile inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <color> tile-color;
+    callback clicked;
+    background: tile-color;
+    border-radius: 8px;
+    height: 118px;
+    TouchArea { clicked => { root.clicked(); } }
+    VerticalLayout {
+        padding: 14px;
+        spacing: 8px;
+        Text { text: title; font-size: 21px; font-weight: 700; color: #151519; }
+        Text { text: subtitle; font-size: 13px; color: #555560; wrap: word-wrap; }
+    }
+}
+
+export component TabletShell inherits Window {
+    title: "Pi Tablet";
+    background: #f7f7fa;
+    in-out property <string> screen: "home";
+    in-out property <string> dialed: "";
+    in-out property <string> status: "Hazir";
+    callback open-app(string);
+
+    VerticalLayout {
+        padding: 18px;
+        spacing: 14px;
+
+        HorizontalLayout {
+            height: 44px;
+            Text { text: screen == "home" ? "Pi Tablet" : screen == "phone" ? "Telefon" : "Uygulamalar"; font-size: 28px; font-weight: 700; color: #111115; }
+            Text { horizontal-stretch: 1; text: status; horizontal-alignment: right; vertical-alignment: center; color: #676772; font-size: 13px; }
+        }
+
+        if screen == "home": VerticalLayout {
+            spacing: 12px;
+            GridLayout {
+                spacing: 12px;
+                AppTile { row: 0; col: 0; title: "Telefon"; subtitle: "AI kisileri ara"; tile-color: #bfe8d2; clicked => { screen = "phone"; } }
+                AppTile { row: 0; col: 1; title: "YouTube Kids"; subtitle: "Guvenli video"; tile-color: #ffd1d1; clicked => { root.open-app("youtube-kids"); } }
+                AppTile { row: 1; col: 0; title: "Egitim"; subtitle: "GCompris etkinlikleri"; tile-color: #d4ddff; clicked => { root.open-app("gcompris"); } }
+                AppTile { row: 1; col: 1; title: "Cizim"; subtitle: "Tux Paint"; tile-color: #ffe3b5; clicked => { root.open-app("tuxpaint"); } }
+            }
+        }
+
+        if screen == "phone": VerticalLayout {
+            spacing: 10px;
+            Text { text: dialed == "" ? "Numara girin" : dialed; font-size: 38px; horizontal-alignment: center; color: #151519; height: 56px; }
+            GridLayout {
+                spacing: 8px;
+                Button { row: 0; col: 0; text: "1"; clicked => { dialed += "1"; } }
+                Button { row: 0; col: 1; text: "2"; clicked => { dialed += "2"; } }
+                Button { row: 0; col: 2; text: "3"; clicked => { dialed += "3"; } }
+                Button { row: 1; col: 0; text: "4"; clicked => { dialed += "4"; } }
+                Button { row: 1; col: 1; text: "5"; clicked => { dialed += "5"; } }
+                Button { row: 1; col: 2; text: "6"; clicked => { dialed += "6"; } }
+                Button { row: 2; col: 0; text: "7"; clicked => { dialed += "7"; } }
+                Button { row: 2; col: 1; text: "8"; clicked => { dialed += "8"; } }
+                Button { row: 2; col: 2; text: "9"; clicked => { dialed += "9"; } }
+                Button { row: 3; col: 0; text: "*"; clicked => { dialed += "*"; } }
+                Button { row: 3; col: 1; text: "0"; clicked => { dialed += "0"; } }
+                Button { row: 3; col: 2; text: "#"; clicked => { dialed += "#"; } }
+            }
+            HorizontalLayout {
+                spacing: 10px;
+                Button { text: "Sil"; clicked => { dialed = ""; } }
+                Button { text: "Ara"; clicked => { status = dialed == "" ? "Asya AI araniyor..." : dialed + " araniyor..."; } }
+            }
+        }
+
+        Rectangle { vertical-stretch: 1; background: transparent; }
+
+        HorizontalLayout {
+            height: 52px;
+            spacing: 10px;
+            Button { text: "Ana ekran"; clicked => { screen = "home"; } }
+            Button { text: "Telefon"; clicked => { screen = "phone"; } }
+            Button { text: "Uygulamalar"; clicked => { screen = "home"; } }
+        }
+    }
+}
