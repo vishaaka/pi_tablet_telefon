@@ -411,17 +411,10 @@ async fn synthesize(
     let edge_tts = std::env::var("PI_EDGE_TTS_COMMAND")
         .unwrap_or_else(|_| "/opt/pi-tablet-rust/edge-tts/bin/edge-tts".into());
     let edge_status = Command::new(edge_tts)
-        .args([
-            "--voice",
-            voice,
-            "--rate",
-            rate,
-            "--pitch",
-            edge_pitch,
-            "--text",
-            text,
-            "--write-media",
-        ])
+        .args(["--voice", voice])
+        .arg(format!("--rate={rate}"))
+        .arg(format!("--pitch={edge_pitch}"))
+        .args(["--text", text, "--write-media"])
         .arg(&edge_target)
         .status()
         .await;
