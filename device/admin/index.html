@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pi Tablet Yönetim</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header><div><strong>Pi Tablet</strong><span>Yönetim paneli</span></div><button id="save">Kaydet ve uygula</button></header>
+  <main>
+    <section class="editor">
+      <div class="section-title"><h1>Ana menü</h1><button id="add">+ Uygulama ekle</button></div>
+      <label>Tablet başlığı<input id="title" maxlength="32"></label>
+      <label>Arka plan rengi<input id="background" type="color"></label>
+      <div id="apps"></div>
+    </section>
+    <aside>
+      <div class="preview-head"><span>Canlı temsili görünüm</span><span id="state">Bağlanıyor</span></div>
+      <div class="tablet"><div class="tablet-screen"><div class="tablet-title" id="preview-title"></div><div class="tiles" id="preview-apps"></div><nav>◁ <b>○</b> □</nav></div></div>
+      <p>Değişiklikler yazarken önizlenir. Kaydettiğinde tablet birkaç saniye içinde yenilenir.</p>
+    </aside>
+  </main>
+  <template id="app-template"><article class="app-editor"><div class="grab">⋮⋮</div><div class="fields"><label>Ad<input data-key="title"></label><label>Alt yazı<input data-key="subtitle"></label><label>Renk<input data-key="color" type="color"></label><label>Açılacak bölüm<select data-key="action"><option value="phone">Telefon</option><option value="youtube-kids">YouTube Kids</option><option value="gcompris">GCompris</option><option value="tuxpaint">Tux Paint</option><option value="settings">Ses ayarları</option></select></label></div><div class="actions"><button data-move="-1">↑</button><button data-move="1">↓</button><button data-remove>Sil</button></div></article></template>
+  <script src="app.js"></script>
+</body>
+</html>

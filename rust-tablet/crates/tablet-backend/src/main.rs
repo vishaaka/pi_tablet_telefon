@@ -7,7 +7,8 @@ use std::{
 use axum::{
     Json, Router,
     extract::{Path as AxumPath, State},
-    http::StatusCode,
+    http::{StatusCode, header},
+    response::{IntoResponse, Redirect},
     routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
@@ -88,6 +89,61 @@ struct Call {
 struct AppState {
     calls: Arc<RwLock<HashMap<Uuid, Call>>>,
     audio_dir: PathBuf,
+    config_path: PathBuf,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+struct TabletConfig {
+    title: String,
+    background: String,
+    apps: Vec<MenuApp>,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+struct MenuApp {
+    title: String,
+    subtitle: String,
+    color: String,
+    action: String,
+}
+
+fn default_config() -> TabletConfig {
+    TabletConfig {
+        title: "Pi Tablet".into(),
+        background: "#f7f7fa".into(),
+        apps: vec![
+            MenuApp {
+                title: "Telefon".into(),
+                subtitle: "AI kisileri ara".into(),
+                color: "#bfe8d2".into(),
+                action: "phone".into(),
+            },
+            MenuApp {
+                title: "YouTube Kids".into(),
+                subtitle: "Guvenli video".into(),
+                color: "#ffd1d1".into(),
+                action: "youtube-kids".into(),
+            },
+            MenuApp {
+                title: "Egitim".into(),
+                subtitle: "GCompris etkinlikleri".into(),
+                color: "#d4ddff".into(),
+                action: "gcompris".into(),
+            },
+            MenuApp {
+                title: "Cizim".into(),
+                subtitle: "Tux Paint".into(),
+                color: "#ffe3b5".into(),
+                action: "tuxpaint".into(),
+            },
+            MenuApp {
+                title: "Ses".into(),
+                subtitle: "Ses ayarlari".into(),
+                color: "#dce8ef".into(),
+                action: "settings".into(),
+            },
+        ],
+    }
 }
 
 #[derive(Deserialize)]
@@ -130,16 +186,25 @@ async fn main() {
     let audio_dir = std::env::var("PI_TABLET_AUDIO_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("/var/lib/pi-tablet-rust/audio"));
+    let config_path = std::env::var("PI_TABLET_CONFIG")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("/var/lib/pi-tablet-rust/tablet-config.json"));
+    let admin_dir = std::env::var("PI_TABLET_ADMIN_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("/opt/pi-tablet-rust/admin"));
     tokio::fs::create_dir_all(&audio_dir)
         .await
         .expect("audio directory");
     let state = AppState {
         calls: Arc::new(RwLock::new(HashMap::new())),
         audio_dir: audio_dir.clone(),
+        config_path,
     };
 
     let app = Router::new()
+        .route("/", get(|| async { Redirect::permanent("/admin/") }))
         .route("/health", get(health))
+        .route("/api/config", get(get_config).put(put_config))
         .route("/system/exit-youtube-kids", get(exit_youtube_kids))
         .route("/contacts", get(contacts))
         .route("/calls/start", post(start_call))
@@ -147,12 +212,50 @@ async fn main() {
         .route("/calls/{call_id}/listen", post(listen))
         .route("/calls/{call_id}/end", post(end_call))
         .nest_service("/audio", ServeDir::new(audio_dir))
+        .nest_service(
+            "/admin",
+            ServeDir::new(admin_dir).append_index_html_on_directories(true),
+        )
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8090")
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8090")
         .await
         .expect("listen");
     axum::serve(listener, app).await.expect("server");
+}
+
+async fn get_config(State(state): State<AppState>) -> Json<TabletConfig> {
+    Json(read_config(&state.config_path).await)
+}
+
+async fn put_config(
+    State(state): State<AppState>,
+    Json(config): Json<TabletConfig>,
+) -> impl IntoResponse {
+    if config.apps.len() > 20 || config.apps.iter().any(|app| app.title.trim().is_empty()) {
+        return (StatusCode::BAD_REQUEST, "Gecersiz menu yapilandirmasi").into_response();
+    }
+    let payload = match serde_json::to_vec_pretty(&config) {
+        Ok(value) => value,
+        Err(_) => return StatusCode::BAD_REQUEST.into_response(),
+    };
+    match tokio::fs::write(&state.config_path, payload).await {
+        Ok(_) => (
+            StatusCode::OK,
+            [(header::CONTENT_TYPE, "application/json")],
+            serde_json::to_string(&config).unwrap_or_default(),
+        )
+            .into_response(),
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+    }
+}
+
+async fn read_config(path: &Path) -> TabletConfig {
+    tokio::fs::read(path)
+        .await
+        .ok()
+        .and_then(|data| serde_json::from_slice(&data).ok())
+        .unwrap_or_else(default_config)
 }
 
 async fn health() -> Json<serde_json::Value> {
@@ -292,13 +395,13 @@ fn quick_reply(contact: &Contact, text: &str, call: &mut Call) -> String {
         call.last_topic = "oyun".into();
         return match contact.id {
             "deniz" => "Hizli oyun: Etrafinda mavi renkli bir sey bulabilir misin?".into(),
-            "kerem" => "Kelime oyunu oynayalim. Ben elma diyorum, sen a harfiyle bir kelime soyle."
-                .into(),
+            "kerem" => {
+                "Kelime oyunu oynayalim. Ben elma diyorum, sen a harfiyle bir kelime soyle.".into()
+            }
             _ => "Bir bilmece ya da kisa hikaye secmek ister misin?".into(),
         };
     }
-    if normalized.contains("bilmece")
-        || (normalized.trim() == "evet" && call.last_topic == "oyun")
+    if normalized.contains("bilmece") || (normalized.trim() == "evet" && call.last_topic == "oyun")
     {
         call.last_topic = "bilmece".into();
         return "Harika. Agzi var konusmaz, yatagi var uyumaz. Nedir?".into();
@@ -313,12 +416,19 @@ fn quick_reply(contact: &Contact, text: &str, call: &mut Call) -> String {
     }
     if normalized.contains("bugun") || normalized.contains("ne yapalim") {
         return match contact.id {
-            "asya" => "Bugun once sevdigin bir oyunu oynayip sonra kisa bir hikaye okuyabiliriz.".into(),
-            "deniz" => "Bugun basit bir deney yapalim: Hangi esyalar suyun ustunde kaliyor, tahmin edelim.".into(),
+            "asya" => {
+                "Bugun once sevdigin bir oyunu oynayip sonra kisa bir hikaye okuyabiliriz.".into()
+            }
+            "deniz" => {
+                "Bugun basit bir deney yapalim: Hangi esyalar suyun ustunde kaliyor, tahmin edelim."
+                    .into()
+            }
             "mira" => "Bugun bir resim cizip ona komik bir isim verebiliriz.".into(),
             "atlas" => "Uc adimli plan: oyun, dinlenme ve yeni bir sey ogrenme.".into(),
             "zeynep" => "Bugun sevdigin birine guzel bir soz soylemekle baslayabiliriz.".into(),
-            "kerem" => "Bugun uc yeni kelime ogrenelim: hello merhaba, sun gunes, friend arkadas.".into(),
+            "kerem" => {
+                "Bugun uc yeni kelime ogrenelim: hello merhaba, sun gunes, friend arkadas.".into()
+            }
             _ => "Bugun guzel bir oyun secerek baslayabiliriz.".into(),
         };
     }

@@ -1,5 +1,12 @@
 import { Button } from "std-widgets.slint";
 
+export struct MenuItem {
+    title: string,
+    subtitle: string,
+    tile-color: color,
+    action: string,
+}
+
 component AppTile inherits Rectangle {
     in property <string> title;
     in property <string> subtitle;
@@ -48,7 +55,10 @@ component SystemNavKey inherits Rectangle {
 
 export component TabletShell inherits Window {
     title: "Pi Tablet";
-    background: #f7f7fa;
+    background: tablet-background;
+    in-out property <string> tablet-title: "Pi Tablet";
+    in-out property <color> tablet-background: #f7f7fa;
+    in-out property <[MenuItem]> menu-items;
     in-out property <string> screen: "home";
     in-out property <string> dialed: "";
     in-out property <string> status: "Hazir";
@@ -75,7 +85,7 @@ export component TabletShell inherits Window {
 
         HorizontalLayout {
             height: 44px;
-            Text { text: screen == "home" ? "Pi Tablet" : screen == "phone" ? "Telefon" : screen == "settings" ? "Ses ayarlari" : "Son uygulamalar"; font-size: 28px; font-weight: 700; color: #111115; }
+            Text { text: screen == "home" ? tablet-title : screen == "phone" ? "Telefon" : screen == "settings" ? "Ses ayarlari" : "Son uygulamalar"; font-size: 28px; font-weight: 700; color: #111115; }
             Text { horizontal-stretch: 1; text: status; horizontal-alignment: right; vertical-alignment: center; color: #676772; font-size: 13px; }
         }
 
@@ -83,11 +93,14 @@ export component TabletShell inherits Window {
             spacing: 12px;
             GridLayout {
                 spacing: 12px;
-                AppTile { row: 0; col: 0; title: "Telefon"; subtitle: "AI kisileri ara"; tile-color: #bfe8d2; clicked => { screen = "phone"; } }
-                AppTile { row: 0; col: 1; title: "YouTube Kids"; subtitle: "Guvenli video"; tile-color: #ffd1d1; clicked => { root.open-app("youtube-kids"); } }
-                AppTile { row: 1; col: 0; title: "Egitim"; subtitle: "GCompris etkinlikleri"; tile-color: #d4ddff; clicked => { root.open-app("gcompris"); } }
-                AppTile { row: 1; col: 1; title: "Cizim"; subtitle: "Tux Paint"; tile-color: #ffe3b5; clicked => { root.open-app("tuxpaint"); } }
-                AppTile { row: 2; col: 0; title: "Ses"; subtitle: volume-percent + "%"; tile-color: #dce8ef; clicked => { screen = "settings"; } }
+                for item[index] in menu-items: AppTile {
+                    row: index / 2;
+                    col: Math.mod(index, 2);
+                    title: item.title;
+                    subtitle: item.action == "settings" ? volume-percent + "%" : item.subtitle;
+                    tile-color: item.tile-color;
+                    clicked => { root.open-app(item.action); }
+                }
             }
         }
 

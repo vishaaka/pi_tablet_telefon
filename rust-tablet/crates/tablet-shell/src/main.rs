@@ -1,3 +1,4 @@
+use slint::{Color, ModelRc, SharedString, VecModel};
 use std::{
     process::Command,
     sync::{Arc, Mutex},
@@ -83,6 +84,41 @@ fn post_json(url: &str, body: &str) -> Option<serde_json::Value> {
     serde_json::from_slice(&output.stdout).ok()
 }
 
+fn color(value: &str) -> Color {
+    let value = value.trim_start_matches('#');
+    if value.len() == 6 {
+        if let Ok(rgb) = u32::from_str_radix(value, 16) {
+            return Color::from_rgb_u8((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8);
+        }
+    }
+    Color::from_rgb_u8(247, 247, 250)
+}
+
+fn apply_menu_config(ui: &TabletShell) {
+    let Some(config) = Command::new("curl")
+        .args(["-fsS", "http://127.0.0.1:8090/api/config"])
+        .output()
+        .ok()
+        .and_then(|output| serde_json::from_slice::<serde_json::Value>(&output.stdout).ok())
+    else {
+        return;
+    };
+    ui.set_tablet_title(config["title"].as_str().unwrap_or("Pi Tablet").into());
+    ui.set_tablet_background(color(config["background"].as_str().unwrap_or("#f7f7fa")));
+    let items = config["apps"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|app| MenuItem {
+            title: SharedString::from(app["title"].as_str().unwrap_or("Uygulama")),
+            subtitle: SharedString::from(app["subtitle"].as_str().unwrap_or("")),
+            tile_color: color(app["color"].as_str().unwrap_or("#dce8ef")),
+            action: SharedString::from(app["action"].as_str().unwrap_or("settings")),
+        })
+        .collect::<Vec<_>>();
+    ui.set_menu_items(ModelRc::new(VecModel::from(items)));
+}
+
 fn play_reply(reply: &serde_json::Value) {
     if let Some(audio_url) = reply["audio_url"].as_str() {
         let _ = Command::new("ffplay")
@@ -100,6 +136,7 @@ fn play_reply(reply: &serde_json::Value) {
 fn main() -> Result<(), slint::PlatformError> {
     let ui = TabletShell::new()?;
     ui.window().set_fullscreen(true);
+    apply_menu_config(&ui);
     let active_call = Arc::new(Mutex::new(None::<String>));
 
     let weak = ui.as_weak();
@@ -123,6 +160,18 @@ fn main() -> Result<(), slint::PlatformError> {
     let weak = ui.as_weak();
     ui.on_open_app(move |app| {
         match app.as_str() {
+            "phone" => {
+                if let Some(ui) = weak.upgrade() {
+                    ui.set_screen("phone".into());
+                }
+                return;
+            }
+            "settings" => {
+                if let Some(ui) = weak.upgrade() {
+                    ui.set_screen("settings".into());
+                }
+                return;
+            }
             "youtube-kids" => launch("/opt/pi-tablet-rust/bin/launch-youtube-kids", &[]),
             "gcompris" => launch("gcompris-qt", &["--fullscreen"]),
             "tuxpaint" => launch("tuxpaint", &["--fullscreen", "--nosysfonts"]),
@@ -130,6 +179,19 @@ fn main() -> Result<(), slint::PlatformError> {
         }
         if let Some(ui) = weak.upgrade() {
             ui.set_status(format!("{app} aciliyor...").into());
+        }
+    });
+
+    let weak = ui.as_weak();
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(3));
+            let weak = weak.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = weak.upgrade() {
+                    apply_menu_config(&ui);
+                }
+            });
         }
     });
 
