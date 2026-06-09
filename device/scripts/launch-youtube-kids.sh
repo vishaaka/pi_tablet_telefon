@@ -14,7 +14,6 @@ exec chromium \
   --enable-features=UseOzonePlatform,TouchEventFeatureDetection \
   --touch-events=enabled \
   --enable-pinch \
-  --enable-touch-drag-drop \
   --app=https://www.youtubekids.com \
   --kiosk \
   --noerrdialogs \
