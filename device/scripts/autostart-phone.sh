@@ -110,7 +110,7 @@ wait_for_file "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" "wayland socket" 120
 wait_for_backend
 
 wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 || true
-wpctl set-volume @DEFAULT_AUDIO_SINK@ "${PI_TABLET_VOLUME:-2.00}" || true
+wpctl set-volume @DEFAULT_AUDIO_SINK@ "${PI_TABLET_VOLUME:-1.50}" || true
 wpctl get-volume @DEFAULT_AUDIO_SINK@ || true
 
 start_waydroid_session

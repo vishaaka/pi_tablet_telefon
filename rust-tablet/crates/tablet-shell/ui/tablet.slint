@@ -57,8 +57,13 @@ export component TabletShell inherits Window {
     in-out property <string> last-reply: "";
     in-out property <bool> listening: false;
     in-out property <string> phone-view: "keypad";
+    in-out property <string> suggested-name: "";
+    in-out property <string> suggested-phone: "";
+    in-out property <int> volume-percent: 150;
     callback open-app(string);
     callback phone-tone(string);
+    callback set-volume(int);
+    callback test-sound;
     callback start-call(string);
     callback send-message(string);
     callback listen;
@@ -70,7 +75,7 @@ export component TabletShell inherits Window {
 
         HorizontalLayout {
             height: 44px;
-            Text { text: screen == "home" ? "Pi Tablet" : screen == "phone" ? "Telefon" : "Son uygulamalar"; font-size: 28px; font-weight: 700; color: #111115; }
+            Text { text: screen == "home" ? "Pi Tablet" : screen == "phone" ? "Telefon" : screen == "settings" ? "Ses ayarlari" : "Son uygulamalar"; font-size: 28px; font-weight: 700; color: #111115; }
             Text { horizontal-stretch: 1; text: status; horizontal-alignment: right; vertical-alignment: center; color: #676772; font-size: 13px; }
         }
 
@@ -82,6 +87,7 @@ export component TabletShell inherits Window {
                 AppTile { row: 0; col: 1; title: "YouTube Kids"; subtitle: "Guvenli video"; tile-color: #ffd1d1; clicked => { root.open-app("youtube-kids"); } }
                 AppTile { row: 1; col: 0; title: "Egitim"; subtitle: "GCompris etkinlikleri"; tile-color: #d4ddff; clicked => { root.open-app("gcompris"); } }
                 AppTile { row: 1; col: 1; title: "Cizim"; subtitle: "Tux Paint"; tile-color: #ffe3b5; clicked => { root.open-app("tuxpaint"); } }
+                AppTile { row: 2; col: 0; title: "Ses"; subtitle: volume-percent + "%"; tile-color: #dce8ef; clicked => { screen = "settings"; } }
             }
         }
 
@@ -89,9 +95,23 @@ export component TabletShell inherits Window {
             spacing: 6px;
             if !in-call && phone-view == "keypad": VerticalLayout {
                 spacing: 5px;
+                if suggested-name != "": Rectangle {
+                    height: 48px;
+                    background: #ffffff;
+                    border-color: #dedee4;
+                    border-width: 1px;
+                    border-radius: 8px;
+                    TouchArea { clicked => { dialed = suggested-phone; } }
+                    HorizontalLayout {
+                        padding-left: 12px;
+                        padding-right: 12px;
+                        Text { text: suggested-name; font-size: 16px; font-weight: 700; color: #151519; vertical-alignment: center; }
+                        Text { horizontal-stretch: 1; text: suggested-phone; font-size: 12px; color: #777781; horizontal-alignment: right; vertical-alignment: center; }
+                    }
+                }
                 Rectangle { height: 44px; background: transparent; Text { text: dialed; font-size: 30px; horizontal-alignment: center; vertical-alignment: center; color: #151519; } }
                 GridLayout {
-                    height: 212px;
+                    height: suggested-name == "" ? 212px : 186px;
                     spacing: 3px;
                     DialKey { row: 0; col: 0; digit: "1"; letters: ""; clicked => { dialed += "1"; root.phone-tone("1"); } }
                     DialKey { row: 0; col: 1; digit: "2"; letters: "ABC"; clicked => { dialed += "2"; root.phone-tone("2"); } }
@@ -117,7 +137,7 @@ export component TabletShell inherits Window {
                         TouchArea { clicked => { status = dialed == "" ? "Asya AI araniyor..." : dialed + " araniyor..."; root.start-call(dialed); } }
                     }
                     Rectangle { horizontal-stretch: 1; background: transparent; }
-                    Button { visible: dialed != ""; width: 58px; text: "Sil"; clicked => { dialed = ""; } }
+                    Button { visible: dialed != ""; width: 58px; text: "Sil"; clicked => { dialed = ""; suggested-name = ""; suggested-phone = ""; } }
                 }
             }
             if !in-call && phone-view == "contacts": VerticalLayout {
@@ -177,6 +197,49 @@ export component TabletShell inherits Window {
                 Button { text: "Son aramalar"; clicked => { phone-view = "recent"; } }
                 Button { text: "Kisiler"; clicked => { phone-view = "contacts"; } }
             }
+        }
+
+        if screen == "settings": VerticalLayout {
+            spacing: 14px;
+            Text { text: "Medya ve arama sesi"; font-size: 18px; font-weight: 700; color: #151519; }
+            Rectangle {
+                height: 78px;
+                background: #ffffff;
+                border-color: #dedee4;
+                border-width: 1px;
+                border-radius: 8px;
+                HorizontalLayout {
+                    padding: 12px;
+                    spacing: 12px;
+                    Button {
+                        text: "-";
+                        width: 54px;
+                        clicked => {
+                            volume-percent = max(50, volume-percent - 25);
+                            root.set-volume(volume-percent);
+                        }
+                    }
+                    Text { horizontal-stretch: 1; text: volume-percent + "%"; font-size: 28px; font-weight: 700; color: #151519; horizontal-alignment: center; vertical-alignment: center; }
+                    Button {
+                        text: "+";
+                        width: 54px;
+                        enabled: volume-percent < 150;
+                        clicked => {
+                            volume-percent = min(150, volume-percent + 25);
+                            root.set-volume(volume-percent);
+                        }
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                Button { text: "50%"; clicked => { volume-percent = 50; root.set-volume(50); } }
+                Button { text: "100%"; clicked => { volume-percent = 100; root.set-volume(100); } }
+                Button { text: "125%"; clicked => { volume-percent = 125; root.set-volume(125); } }
+                Button { text: "150%"; clicked => { volume-percent = 150; root.set-volume(150); } }
+            }
+            Button { text: "Sesi dene"; clicked => { root.test-sound(); } }
+            Text { text: "En yuksek seviye 150%"; font-size: 13px; color: #777781; }
         }
 
         if screen == "recent-apps": VerticalLayout {

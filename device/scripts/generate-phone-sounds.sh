@@ -25,8 +25,8 @@ tone dtmf-star 941 1209
 tone dtmf-0 941 1336
 tone dtmf-hash 941 1477
 
-sox -q -n "$work/ring-on.wav" synth 1.4 sine 425 gain -13 fade 0.03 1.4 0.08
-sox -q "$work/ring-on.wav" "$work/ringback.wav" pad 0 2.6
+sox -q -n "$work/ring-on.wav" synth 1.2 sine 425 gain -6 fade 0.03 1.2 0.08
+sox -q "$work/ring-on.wav" "$work/ringback.wav" pad 0 2.8
 sox -q -n "$work/connect.wav" synth 0.14 sine 950 gain -8 fade 0.01 0.14 0.03
 sox -q -n "$work/end.wav" synth 0.12 sine 620 gain -8 fade 0.01 0.12 0.03
 sox -q -n "$work/delete.wav" synth 0.07 sine 330 gain -12 fade 0.01 0.07 0.02

@@ -9,6 +9,40 @@ fn launch(program: &str, args: &[&str]) {
     let _ = Command::new(program).args(args).spawn();
 }
 
+fn set_system_volume(percent: i32) {
+    let capped = percent.clamp(0, 150);
+    let _ = Command::new("wpctl")
+        .args([
+            "set-volume",
+            "@DEFAULT_AUDIO_SINK@",
+            &format!("{:.2}", capped as f32 / 100.0),
+        ])
+        .status();
+}
+
+fn contact_suggestion(number: &str) -> (&'static str, &'static str) {
+    let digits: String = number.chars().filter(char::is_ascii_digit).collect();
+    if digits.is_empty() {
+        return ("", "");
+    }
+    const CONTACTS: &[(&str, &str)] = &[
+        ("Asya AI", "+90 532 101 10 10"),
+        ("Deniz AI", "+90 533 202 20 20"),
+        ("Mira AI", "+90 534 303 30 30"),
+        ("Atlas AI", "+90 535 404 40 40"),
+        ("Zeynep AI", "+90 536 505 50 50"),
+        ("Kerem AI", "+90 537 606 60 60"),
+    ];
+    CONTACTS
+        .iter()
+        .find(|(_, phone)| {
+            let contact_digits: String = phone.chars().filter(char::is_ascii_digit).collect();
+            contact_digits.contains(&digits) || contact_digits.ends_with(&digits)
+        })
+        .copied()
+        .unwrap_or(("", ""))
+}
+
 fn play_phone_sound(name: &str, looping: bool) {
     let path = format!("/opt/pi-tablet-rust/sounds/{name}.wav");
     let mut command = Command::new("ffplay");
@@ -68,8 +102,22 @@ fn main() -> Result<(), slint::PlatformError> {
     ui.window().set_fullscreen(true);
     let active_call = Arc::new(Mutex::new(None::<String>));
 
+    let weak = ui.as_weak();
     ui.on_phone_tone(move |tone| {
         play_phone_sound(&format!("dtmf-{tone}"), false);
+        if let Some(ui) = weak.upgrade() {
+            let (name, phone) = contact_suggestion(ui.get_dialed().as_str());
+            ui.set_suggested_name(name.into());
+            ui.set_suggested_phone(phone.into());
+        }
+    });
+
+    ui.on_set_volume(move |percent| {
+        set_system_volume(percent);
+    });
+
+    ui.on_test_sound(move || {
+        play_phone_sound("ring-on", false);
     });
 
     let weak = ui.as_weak();
@@ -117,7 +165,14 @@ fn main() -> Result<(), slint::PlatformError> {
                 .as_str()
                 .unwrap_or("AI kisi")
                 .to_string();
-            std::thread::sleep(std::time::Duration::from_millis(2200));
+            let ringing_name = name.clone();
+            let weak_ringing = weak.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = weak_ringing.upgrade() {
+                    ui.set_status(format!("{ringing_name} telefonu caliyor...").into());
+                }
+            });
+            std::thread::sleep(std::time::Duration::from_millis(4200));
             stop_ringback();
             play_phone_sound("connect", false);
             std::thread::sleep(std::time::Duration::from_millis(250));
