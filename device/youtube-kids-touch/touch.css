@@ -57,6 +57,10 @@ body.pi-video-playing video {
   touch-action: none !important;
 }
 
+body.pi-video-playing #pi-tablet-gesture-layer {
+  pointer-events: none !important;
+}
+
 #pi-tablet-navigation button {
   appearance: none !important;
   border: 0 !important;

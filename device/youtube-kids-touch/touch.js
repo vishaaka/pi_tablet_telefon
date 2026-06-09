@@ -228,9 +228,7 @@
     if (window === window.top) document.body?.classList.add("pi-tablet-top");
     addGestureLayer();
     addNavigation();
-    const playing = [...document.querySelectorAll("video")].some(
-      (video) => !video.paused && !video.ended
-    );
+    const playing = location.pathname !== "/" || document.querySelector("video") !== null;
     document.body?.classList.toggle("pi-video-playing", playing);
   };
 
