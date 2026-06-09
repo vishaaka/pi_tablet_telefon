@@ -23,6 +23,7 @@ exec chromium \
   --no-first-run \
   --overscroll-history-navigation=0 \
   --disable-features=OverscrollHistoryNavigation,Translate,MediaRouter \
+  --disable-extensions-except="$EXTENSION_DIR" \
   --load-extension="$EXTENSION_DIR" \
   --force-device-scale-factor="${PI_TABLET_SCALE_FACTOR:-0.80}" \
   --user-data-dir="$PROFILE_DIR"
