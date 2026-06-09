@@ -1,13 +1,17 @@
 html,
 body {
   overscroll-behavior: none !important;
-  touch-action: pan-x pan-y pinch-zoom !important;
+  touch-action: none !important;
   scrollbar-width: none !important;
   padding-bottom: 48px !important;
 }
 
 body * {
   scrollbar-width: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-user-drag: none !important;
+  touch-action: none !important;
 }
 
 body *::-webkit-scrollbar {

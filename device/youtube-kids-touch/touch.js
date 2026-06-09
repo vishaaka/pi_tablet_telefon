@@ -3,6 +3,8 @@
   let lastX = 0;
   let lastY = 0;
   let dragging = false;
+  let pointerActive = false;
+  let suppressClick = false;
 
   const addNavigation = () => {
     if (!document.body || document.querySelector("#pi-tablet-navigation")) return;
@@ -42,49 +44,53 @@
     lastX = x;
     lastY = y;
     dragging = false;
+    suppressClick = false;
   };
 
   const move = (event, x, y) => {
     if (!target) return;
     const dx = lastX - x;
     const dy = lastY - y;
-    if (Math.abs(dx) + Math.abs(dy) > 4) dragging = true;
+    if (Math.abs(dx) + Math.abs(dy) > 5) dragging = true;
     if (dragging) {
-      target.scrollBy({ left: dx, top: dy, behavior: "auto" });
-      event.preventDefault();
+      suppressClick = true;
+      target.scrollLeft += dx;
+      target.scrollTop += dy;
+      if (event.cancelable) event.preventDefault();
+      event.stopPropagation();
     }
     lastX = x;
     lastY = y;
   };
 
-  addEventListener("touchstart", (event) => {
-    const touch = event.touches[0];
-    if (touch) begin(touch.clientX, touch.clientY, event.target);
-  }, { capture: true, passive: false });
-
-  addEventListener("touchmove", (event) => {
-    const touch = event.touches[0];
-    if (touch) move(event, touch.clientX, touch.clientY);
-  }, { capture: true, passive: false });
-
-  addEventListener("touchend", () => {
-    target = null;
-  }, { capture: true });
-
   addEventListener("pointerdown", (event) => {
-    if (!("ontouchstart" in window) && event.pointerType === "touch") {
-      begin(event.clientX, event.clientY, event.target);
-    }
-  }, { capture: true });
+    if (!event.isPrimary || (event.button !== 0 && event.pointerType === "mouse")) return;
+    pointerActive = true;
+    begin(event.clientX, event.clientY, event.target);
+    event.target?.setPointerCapture?.(event.pointerId);
+  }, { capture: true, passive: false });
 
   addEventListener("pointermove", (event) => {
-    if (!("ontouchstart" in window) && event.pointerType === "touch") {
-      move(event, event.clientX, event.clientY);
-    }
+    if (pointerActive && event.isPrimary) move(event, event.clientX, event.clientY);
+  }, { capture: true, passive: false });
+
+  addEventListener("pointerup", (event) => {
+    pointerActive = false;
+    event.target?.releasePointerCapture?.(event.pointerId);
+    target = null;
+  }, { capture: true, passive: false });
+
+  addEventListener("pointercancel", () => {
+    pointerActive = false;
+    target = null;
   }, { capture: true });
 
-  addEventListener("pointerup", () => {
-    target = null;
+  addEventListener("click", (event) => {
+    if (suppressClick) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      suppressClick = false;
+    }
   }, { capture: true });
 
   const updateVideoMode = () => {
