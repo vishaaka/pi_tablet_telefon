@@ -3,6 +3,9 @@ body {
   overscroll-behavior: none !important;
   touch-action: none !important;
   scrollbar-width: none !important;
+}
+
+body.pi-tablet-top {
   padding-bottom: 48px !important;
 }
 

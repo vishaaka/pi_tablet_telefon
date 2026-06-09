@@ -5,8 +5,10 @@
   let dragging = false;
   let pointerActive = false;
   let suppressClick = false;
+  let mouseActive = false;
 
   const addNavigation = () => {
+    if (window !== window.top) return;
     if (!document.body || document.querySelector("#pi-tablet-navigation")) return;
     const navigation = document.createElement("nav");
     navigation.id = "pi-tablet-navigation";
@@ -24,19 +26,34 @@
     document.body.append(navigation);
   };
 
+  const canScroll = (element) =>
+    element &&
+    (
+      element.scrollHeight > element.clientHeight + 2 ||
+      element.scrollWidth > element.clientWidth + 2
+    );
+
+  const descendants = (root, found = []) => {
+    for (const element of root.querySelectorAll?.("*") || []) {
+      if (canScroll(element)) found.push(element);
+      if (element.shadowRoot) descendants(element.shadowRoot, found);
+    }
+    return found;
+  };
+
   const scrollable = (start) => {
     let element = start instanceof Element ? start : document.documentElement;
     while (element && element !== document.documentElement) {
-      const style = getComputedStyle(element);
-      if (
-        element.scrollHeight > element.clientHeight + 2 &&
-        style.overflowY !== "hidden"
-      ) {
-        return element;
-      }
+      if (canScroll(element)) return element;
       element = element.parentElement;
     }
-    return document.scrollingElement || document.documentElement;
+    const documentScroller = document.scrollingElement || document.documentElement;
+    if (canScroll(documentScroller)) return documentScroller;
+    return descendants(document)
+      .sort((a, b) =>
+        (b.scrollHeight - b.clientHeight + b.scrollWidth - b.clientWidth) -
+        (a.scrollHeight - a.clientHeight + a.scrollWidth - a.clientWidth)
+      )[0] || documentScroller;
   };
 
   const begin = (x, y, element) => {
@@ -54,8 +71,15 @@
     if (Math.abs(dx) + Math.abs(dy) > 5) dragging = true;
     if (dragging) {
       suppressClick = true;
-      target.scrollLeft += dx;
-      target.scrollTop += dy;
+      const verticalRoom = target.scrollHeight - target.clientHeight;
+      const horizontalRoom = target.scrollWidth - target.clientWidth;
+      if (verticalRoom > 2) target.scrollTop += dy;
+      if (horizontalRoom > 2 && (verticalRoom <= 2 || Math.abs(dx) > Math.abs(dy))) {
+        target.scrollLeft += dx;
+      }
+      if (verticalRoom <= 2 && horizontalRoom <= 2) {
+        window.scrollBy(dx, dy);
+      }
       if (event.cancelable) event.preventDefault();
       event.stopPropagation();
     }
@@ -85,6 +109,24 @@
     target = null;
   }, { capture: true });
 
+  addEventListener("mousedown", (event) => {
+    if (event.button !== 0) return;
+    mouseActive = true;
+    begin(event.clientX, event.clientY, event.target);
+    if (event.cancelable) event.preventDefault();
+  }, { capture: true, passive: false });
+
+  addEventListener("mousemove", (event) => {
+    if (mouseActive && (event.buttons & 1) === 1) {
+      move(event, event.clientX, event.clientY);
+    }
+  }, { capture: true, passive: false });
+
+  addEventListener("mouseup", () => {
+    mouseActive = false;
+    target = null;
+  }, { capture: true, passive: false });
+
   addEventListener("click", (event) => {
     if (suppressClick) {
       event.preventDefault();
@@ -94,6 +136,7 @@
   }, { capture: true });
 
   const updateVideoMode = () => {
+    if (window === window.top) document.body?.classList.add("pi-tablet-top");
     addNavigation();
     const playing = [...document.querySelectorAll("video")].some(
       (video) => !video.paused && !video.ended
