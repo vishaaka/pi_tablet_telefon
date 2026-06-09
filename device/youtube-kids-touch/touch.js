@@ -8,6 +8,84 @@
   let mouseActive = false;
   let startElement = null;
 
+  const largestScroller = (axis) => {
+    const documentScroller = document.scrollingElement || document.documentElement;
+    const options = descendants(document, axis);
+    if (canScroll(documentScroller, axis)) options.push(documentScroller);
+    return options.sort((a, b) => {
+      const aRoom = axis === "vertical" ? a.scrollHeight - a.clientHeight : a.scrollWidth - a.clientWidth;
+      const bRoom = axis === "vertical" ? b.scrollHeight - b.clientHeight : b.scrollWidth - b.clientWidth;
+      return bRoom - aRoom;
+    })[0] || documentScroller;
+  };
+
+  const addGestureLayer = () => {
+    if (window !== window.top || !document.body || document.querySelector("#pi-tablet-gesture-layer")) return;
+    const layer = document.createElement("div");
+    layer.id = "pi-tablet-gesture-layer";
+    let downX = 0;
+    let downY = 0;
+    let lastLayerX = 0;
+    let lastLayerY = 0;
+    let moved = false;
+    let active = false;
+    let layerTarget = null;
+
+    const underlying = (x, y) => {
+      layer.style.pointerEvents = "none";
+      const element = document.elementFromPoint(x, y);
+      layer.style.pointerEvents = "auto";
+      return element;
+    };
+
+    const start = (event) => {
+      if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
+      active = true;
+      moved = false;
+      downX = lastLayerX = event.clientX;
+      downY = lastLayerY = event.clientY;
+      layerTarget = underlying(event.clientX, event.clientY);
+      layer.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+    };
+
+    const drag = (event) => {
+      if (!active || !event.isPrimary) return;
+      const dx = lastLayerX - event.clientX;
+      const dy = lastLayerY - event.clientY;
+      if (Math.abs(event.clientX - downX) + Math.abs(event.clientY - downY) > 6) moved = true;
+      if (moved) {
+        const axis = Math.abs(dy) >= Math.abs(dx) ? "vertical" : "horizontal";
+        const scroller = largestScroller(axis);
+        if (axis === "vertical") scroller.scrollTop += dy;
+        else scroller.scrollLeft += dx;
+        layerTarget?.dispatchEvent(new WheelEvent("wheel", {
+          bubbles: true,
+          cancelable: true,
+          deltaX: axis === "horizontal" ? dx : 0,
+          deltaY: axis === "vertical" ? dy : 0
+        }));
+      }
+      lastLayerX = event.clientX;
+      lastLayerY = event.clientY;
+      event.preventDefault();
+    };
+
+    const end = (event) => {
+      if (!active) return;
+      active = false;
+      layer.releasePointerCapture?.(event.pointerId);
+      if (!moved) underlying(event.clientX, event.clientY)?.click();
+      event.preventDefault();
+    };
+
+    layer.addEventListener("pointerdown", start, { passive: false });
+    layer.addEventListener("pointermove", drag, { passive: false });
+    layer.addEventListener("pointerup", end, { passive: false });
+    layer.addEventListener("pointercancel", () => { active = false; }, { passive: false });
+    document.body.append(layer);
+  };
+
   const addNavigation = () => {
     if (window !== window.top) return;
     if (!document.body || document.querySelector("#pi-tablet-navigation")) return;
@@ -92,6 +170,7 @@
   };
 
   addEventListener("pointerdown", (event) => {
+    if (event.target?.id === "pi-tablet-gesture-layer") return;
     if (!event.isPrimary || (event.button !== 0 && event.pointerType === "mouse")) return;
     pointerActive = true;
     begin(event.clientX, event.clientY, event.target);
@@ -99,6 +178,7 @@
   }, { capture: true, passive: false });
 
   addEventListener("pointermove", (event) => {
+    if (event.target?.id === "pi-tablet-gesture-layer") return;
     if (pointerActive && event.isPrimary) move(event, event.clientX, event.clientY);
   }, { capture: true, passive: false });
 
@@ -116,6 +196,7 @@
   }, { capture: true });
 
   addEventListener("mousedown", (event) => {
+    if (event.target?.id === "pi-tablet-gesture-layer") return;
     if (event.button !== 0) return;
     mouseActive = true;
     begin(event.clientX, event.clientY, event.target);
@@ -123,6 +204,7 @@
   }, { capture: true, passive: false });
 
   addEventListener("mousemove", (event) => {
+    if (event.target?.id === "pi-tablet-gesture-layer") return;
     if (mouseActive && (event.buttons & 1) === 1) {
       move(event, event.clientX, event.clientY);
     }
@@ -144,6 +226,7 @@
 
   const updateVideoMode = () => {
     if (window === window.top) document.body?.classList.add("pi-tablet-top");
+    addGestureLayer();
     addNavigation();
     const playing = [...document.querySelectorAll("video")].some(
       (video) => !video.paused && !video.ended

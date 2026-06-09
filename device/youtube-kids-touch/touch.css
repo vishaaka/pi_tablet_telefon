@@ -48,6 +48,15 @@ body.pi-video-playing video {
   touch-action: manipulation !important;
 }
 
+#pi-tablet-gesture-layer {
+  position: fixed !important;
+  z-index: 2147483646 !important;
+  inset: 0 0 48px 0 !important;
+  background: transparent !important;
+  cursor: default !important;
+  touch-action: none !important;
+}
+
 #pi-tablet-navigation button {
   appearance: none !important;
   border: 0 !important;
