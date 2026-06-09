@@ -6,6 +6,7 @@
   let pointerActive = false;
   let suppressClick = false;
   let mouseActive = false;
+  let startElement = null;
 
   const addNavigation = () => {
     if (window !== window.top) return;
@@ -26,30 +27,30 @@
     document.body.append(navigation);
   };
 
-  const canScroll = (element) =>
-    element &&
-    (
-      element.scrollHeight > element.clientHeight + 2 ||
-      element.scrollWidth > element.clientWidth + 2
-    );
+  const canScroll = (element, axis = "both") => {
+    if (!element) return false;
+    const vertical = element.scrollHeight > element.clientHeight + 2;
+    const horizontal = element.scrollWidth > element.clientWidth + 2;
+    return axis === "vertical" ? vertical : axis === "horizontal" ? horizontal : vertical || horizontal;
+  };
 
-  const descendants = (root, found = []) => {
+  const descendants = (root, axis, found = []) => {
     for (const element of root.querySelectorAll?.("*") || []) {
-      if (canScroll(element)) found.push(element);
-      if (element.shadowRoot) descendants(element.shadowRoot, found);
+      if (canScroll(element, axis)) found.push(element);
+      if (element.shadowRoot) descendants(element.shadowRoot, axis, found);
     }
     return found;
   };
 
-  const scrollable = (start) => {
+  const scrollable = (start, axis) => {
     let element = start instanceof Element ? start : document.documentElement;
     while (element && element !== document.documentElement) {
-      if (canScroll(element)) return element;
+      if (canScroll(element, axis)) return element;
       element = element.parentElement;
     }
     const documentScroller = document.scrollingElement || document.documentElement;
-    if (canScroll(documentScroller)) return documentScroller;
-    return descendants(document)
+    if (canScroll(documentScroller, axis)) return documentScroller;
+    return descendants(document, axis)
       .sort((a, b) =>
         (b.scrollHeight - b.clientHeight + b.scrollWidth - b.clientWidth) -
         (a.scrollHeight - a.clientHeight + a.scrollWidth - a.clientWidth)
@@ -57,7 +58,8 @@
   };
 
   const begin = (x, y, element) => {
-    target = scrollable(element);
+    target = null;
+    startElement = element;
     lastX = x;
     lastY = y;
     dragging = false;
@@ -65,11 +67,13 @@
   };
 
   const move = (event, x, y) => {
-    if (!target) return;
     const dx = lastX - x;
     const dy = lastY - y;
     if (Math.abs(dx) + Math.abs(dy) > 5) dragging = true;
     if (dragging) {
+      if (!target) {
+        target = scrollable(startElement, Math.abs(dy) >= Math.abs(dx) ? "vertical" : "horizontal");
+      }
       suppressClick = true;
       const verticalRoom = target.scrollHeight - target.clientHeight;
       const horizontalRoom = target.scrollWidth - target.clientWidth;
@@ -102,11 +106,13 @@
     pointerActive = false;
     event.target?.releasePointerCapture?.(event.pointerId);
     target = null;
+    startElement = null;
   }, { capture: true, passive: false });
 
   addEventListener("pointercancel", () => {
     pointerActive = false;
     target = null;
+    startElement = null;
   }, { capture: true });
 
   addEventListener("mousedown", (event) => {
@@ -125,6 +131,7 @@
   addEventListener("mouseup", () => {
     mouseActive = false;
     target = null;
+    startElement = null;
   }, { capture: true, passive: false });
 
   addEventListener("click", (event) => {
