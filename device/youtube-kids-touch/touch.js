@@ -228,7 +228,19 @@
     if (window === window.top) document.body?.classList.add("pi-tablet-top");
     addGestureLayer();
     addNavigation();
-    const playing = location.pathname !== "/" || document.querySelector("video") !== null;
+    const playing = [...document.querySelectorAll("video")].some((video) => {
+      const rect = video.getBoundingClientRect();
+      const style = getComputedStyle(video);
+      return (
+        rect.width > 200 &&
+        rect.height > 120 &&
+        rect.bottom > 0 &&
+        rect.top < innerHeight &&
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
+        Number(style.opacity) > 0
+      );
+    });
     document.body?.classList.toggle("pi-video-playing", playing);
   };
 
@@ -238,5 +250,8 @@
   });
   addEventListener("play", updateVideoMode, true);
   addEventListener("pause", updateVideoMode, true);
+  addEventListener("popstate", updateVideoMode);
+  addEventListener("hashchange", updateVideoMode);
   addEventListener("DOMContentLoaded", updateVideoMode, { once: true });
+  setInterval(updateVideoMode, 500);
 })();
