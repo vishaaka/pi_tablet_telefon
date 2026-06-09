@@ -1,0 +1,51 @@
+html,
+body {
+  overscroll-behavior: none !important;
+  touch-action: pan-x pan-y pinch-zoom !important;
+  scrollbar-width: none !important;
+  padding-bottom: 48px !important;
+}
+
+body * {
+  scrollbar-width: none !important;
+}
+
+body *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+}
+
+body.pi-video-playing header,
+body.pi-video-playing [role="banner"],
+body.pi-video-playing ytk-header,
+body.pi-video-playing ytk-app-header,
+body.pi-video-playing #header {
+  display: none !important;
+}
+
+body.pi-video-playing video {
+  max-height: calc(100vh - 48px) !important;
+}
+
+#pi-tablet-navigation {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: 48px !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  background: rgba(245, 245, 248, 0.98) !important;
+  border-top: 1px solid #d8d8df !important;
+  touch-action: manipulation !important;
+}
+
+#pi-tablet-navigation button {
+  appearance: none !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #484850 !important;
+  font: 26px sans-serif !important;
+  touch-action: manipulation !important;
+}

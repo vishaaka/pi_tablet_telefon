@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Pi Tablet YouTube Kids Touch",
+  "version": "1.0.0",
+  "description": "Tablet touch scrolling and compact video layout for YouTube Kids.",
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtubekids.com/*"],
+      "css": ["touch.css"],
+      "js": ["touch.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

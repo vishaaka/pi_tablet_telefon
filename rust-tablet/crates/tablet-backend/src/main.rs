@@ -140,6 +140,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/health", get(health))
+        .route("/system/exit-youtube-kids", get(exit_youtube_kids))
         .route("/contacts", get(contacts))
         .route("/calls/start", post(start_call))
         .route("/calls/{call_id}/message", post(message))
@@ -161,6 +162,13 @@ async fn health() -> Json<serde_json::Value> {
         "port": 8090,
         "waydroid_required": false
     }))
+}
+
+async fn exit_youtube_kids() -> &'static str {
+    let _ = Command::new("pkill")
+        .args(["-f", "chromium.*pi-tablet/youtube-kids"])
+        .spawn();
+    "YouTube Kids kapatiliyor"
 }
 
 async fn contacts() -> Json<Vec<Contact>> {
