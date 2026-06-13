@@ -6,11 +6,17 @@ export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
 export DISPLAY="${DISPLAY:-:0}"
 export SLINT_FULLSCREEN=1
 export SLINT_BACKEND="${SLINT_BACKEND:-winit-femtovg}"
+EXIT_MARKER="/tmp/pi-tablet-exit-to-desktop"
+rm -f "$EXIT_MARKER"
 
 wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 2>/dev/null || true
 wpctl set-volume @DEFAULT_AUDIO_SINK@ 1.50 2>/dev/null || true
 
 while true; do
   /opt/pi-tablet-rust/bin/pi-tablet-shell
+  if [ -f "$EXIT_MARKER" ]; then
+    rm -f "$EXIT_MARKER"
+    break
+  fi
   sleep 2
 done

@@ -20,6 +20,10 @@ exec chromium \
   --disable-infobars \
   --disable-session-crashed-bubble \
   --no-first-run \
+  --no-default-browser-check \
+  --password-store=basic \
+  --disable-sync \
+  --disable-signin-promo \
   --overscroll-history-navigation=0 \
   --disable-features=OverscrollHistoryNavigation,Translate,MediaRouter \
   --disable-extensions-except="$EXTENSION_DIR" \

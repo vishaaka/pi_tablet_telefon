@@ -2,6 +2,7 @@ use slint::{Color, ModelRc, SharedString, VecModel};
 use std::{
     process::Command,
     sync::{Arc, Mutex},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 slint::include_modules!();
@@ -144,6 +145,39 @@ fn main() -> Result<(), slint::PlatformError> {
     ui.window().set_fullscreen(true);
     apply_menu_config(&ui);
     let active_call = Arc::new(Mutex::new(None::<String>));
+    let parent_exit_answer = Arc::new(Mutex::new(0_u32));
+
+    let weak = ui.as_weak();
+    let expected_answer = parent_exit_answer.clone();
+    ui.on_request_parent_exit(move || {
+        let seed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.subsec_nanos())
+            .unwrap_or(7);
+        let left = 2 + seed % 8;
+        let right = 1 + (seed / 11) % 9;
+        *expected_answer.lock().expect("parent exit answer") = left + right;
+        if let Some(ui) = weak.upgrade() {
+            ui.set_parent_exit_question(format!("{left} + {right} = ?").into());
+            ui.set_parent_exit_answer("".into());
+            ui.set_parent_exit_open(true);
+        }
+    });
+
+    let expected_answer = parent_exit_answer.clone();
+    ui.on_submit_parent_exit(move |answer| {
+        let correct = answer
+            .as_str()
+            .parse::<u32>()
+            .is_ok_and(|value| value == *expected_answer.lock().expect("parent exit answer"));
+        if correct {
+            let _ = Command::new("pkill")
+                .args(["-f", "chromium.*pi-tablet/youtube-kids"])
+                .status();
+            let _ = std::fs::write("/tmp/pi-tablet-exit-to-desktop", "parent-approved\n");
+            std::process::exit(0);
+        }
+    });
 
     let weak = ui.as_weak();
     ui.on_phone_tone(move |tone| {

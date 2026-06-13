@@ -87,6 +87,9 @@ export component TabletShell inherits Window {
     in-out property <string> suggested-initial: "A";
     in-out property <string> suggested-phone: "";
     in-out property <int> volume-percent: 150;
+    in-out property <bool> parent-exit-open: false;
+    in-out property <string> parent-exit-question: "";
+    in-out property <string> parent-exit-answer: "";
     callback open-app(string);
     callback phone-tone(string);
     callback set-volume(int);
@@ -95,6 +98,8 @@ export component TabletShell inherits Window {
     callback send-message(string);
     callback listen;
     callback end-call;
+    callback request-parent-exit;
+    callback submit-parent-exit(string);
 
     VerticalLayout {
         padding: 18px;
@@ -104,6 +109,13 @@ export component TabletShell inherits Window {
             height: 44px;
             Text { text: screen == "home" ? tablet-title : screen == "phone" ? "Telefon" : screen == "settings" ? "Ses ayarlari" : "Son uygulamalar"; font-size: 28px; font-weight: 700; color: #111115; }
             Text { horizontal-stretch: 1; text: status; horizontal-alignment: right; vertical-alignment: center; color: #676772; font-size: 13px; }
+            Rectangle {
+                width: 44px;
+                height: 44px;
+                background: transparent;
+                TouchArea { clicked => { root.request-parent-exit(); } }
+                Text { text: "⏻"; font-size: 25px; color: #55555e; horizontal-alignment: center; vertical-alignment: center; }
+            }
         }
 
         if screen == "home": VerticalLayout {
@@ -379,6 +391,55 @@ export component TabletShell inherits Window {
                     symbol: "□";
                     clicked => { screen = "recent-apps"; }
                 }
+            }
+        }
+    }
+
+    if parent-exit-open: Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        background: #00000088;
+        TouchArea { }
+        Rectangle {
+            width: 310px;
+            height: 350px;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            background: #ffffff;
+            border-radius: 8px;
+            VerticalLayout {
+                padding: 18px;
+                spacing: 10px;
+                Text { text: "Ebeveyn kontrolu"; font-size: 22px; font-weight: 700; color: #151519; horizontal-alignment: center; }
+                Text { text: parent-exit-question; font-size: 27px; font-weight: 700; color: #151519; horizontal-alignment: center; }
+                Text { text: parent-exit-answer == "" ? "Cevabi girin" : parent-exit-answer; font-size: 24px; color: #555560; horizontal-alignment: center; }
+                GridLayout {
+                    spacing: 6px;
+                    Button { row: 0; col: 0; text: "1"; clicked => { parent-exit-answer += "1"; } }
+                    Button { row: 0; col: 1; text: "2"; clicked => { parent-exit-answer += "2"; } }
+                    Button { row: 0; col: 2; text: "3"; clicked => { parent-exit-answer += "3"; } }
+                    Button { row: 1; col: 0; text: "4"; clicked => { parent-exit-answer += "4"; } }
+                    Button { row: 1; col: 1; text: "5"; clicked => { parent-exit-answer += "5"; } }
+                    Button { row: 1; col: 2; text: "6"; clicked => { parent-exit-answer += "6"; } }
+                    Button { row: 2; col: 0; text: "7"; clicked => { parent-exit-answer += "7"; } }
+                    Button { row: 2; col: 1; text: "8"; clicked => { parent-exit-answer += "8"; } }
+                    Button { row: 2; col: 2; text: "9"; clicked => { parent-exit-answer += "9"; } }
+                    Button { row: 3; col: 0; text: "Sil"; clicked => { parent-exit-answer = ""; } }
+                    Button { row: 3; col: 1; text: "0"; clicked => { parent-exit-answer += "0"; } }
+                    Button {
+                        row: 3;
+                        col: 2;
+                        text: "Tamam";
+                        clicked => {
+                            root.submit-parent-exit(parent-exit-answer);
+                            parent-exit-open = false;
+                            parent-exit-answer = "";
+                        }
+                    }
+                }
+                Button { text: "Iptal"; clicked => { parent-exit-open = false; parent-exit-answer = ""; } }
             }
         }
     }
