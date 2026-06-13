@@ -53,7 +53,7 @@ fn play_phone_sound(name: &str, looping: bool) {
         "-loglevel",
         "error",
         "-volume",
-        "100",
+        "85",
     ]);
     if looping {
         command.args(["-stream_loop", "-1"]);
@@ -292,6 +292,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             });
 
+            std::thread::sleep(std::time::Duration::from_secs(2));
             loop {
                 let is_active = call_slot
                     .lock()
@@ -304,7 +305,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
                 let listen_url = format!("http://127.0.0.1:8090/calls/{call_id}/listen");
                 let Some(reply) = post_json(&listen_url, "{}") else {
-                    std::thread::sleep(std::time::Duration::from_millis(500));
+                    std::thread::sleep(std::time::Duration::from_millis(1500));
                     continue;
                 };
                 let heard = reply["heard_text"]
@@ -316,6 +317,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     .unwrap_or("Biraz daha yakindan tekrar soyler misin?")
                     .to_string();
                 if heard == "Seni duyamadim" {
+                    std::thread::sleep(std::time::Duration::from_millis(1500));
                     continue;
                 }
                 let weak_status = weak.clone();
