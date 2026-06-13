@@ -217,6 +217,11 @@ fn main() -> Result<(), slint::PlatformError> {
             "youtube-kids" => launch("/opt/pi-tablet-rust/bin/launch-youtube-kids", &[]),
             "gcompris" => launch("gcompris-qt", &["--fullscreen"]),
             "tuxpaint" => launch("tuxpaint", &["--fullscreen", "--nosysfonts"]),
+            _ if app.starts_with("desktop:") => {
+                if let Some(desktop_id) = app.strip_prefix("desktop:") {
+                    launch("gtk-launch", &[desktop_id]);
+                }
+            }
             _ => {}
         }
         if let Some(ui) = weak.upgrade() {

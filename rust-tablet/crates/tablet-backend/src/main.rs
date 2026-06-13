@@ -1,5 +1,6 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
+    ffi::OsStr,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -110,6 +111,13 @@ struct MenuApp {
     action: String,
 }
 
+#[derive(Clone, Serialize)]
+struct InstalledApp {
+    id: String,
+    name: String,
+    comment: String,
+}
+
 fn default_config() -> TabletConfig {
     TabletConfig {
         title: "Pi Tablet".into(),
@@ -208,6 +216,7 @@ async fn main() {
         .route("/", get(|| async { Redirect::permanent("/admin/") }))
         .route("/health", get(health))
         .route("/api/config", get(get_config).put(put_config))
+        .route("/api/installed-apps", get(installed_apps))
         .route("/system/exit-youtube-kids", get(exit_youtube_kids))
         .route("/contacts", get(contacts))
         .route("/calls/start", post(start_call))
@@ -241,7 +250,12 @@ async fn put_config(
     State(state): State<AppState>,
     Json(config): Json<TabletConfig>,
 ) -> impl IntoResponse {
-    if config.apps.len() > 20 || config.apps.iter().any(|app| app.title.trim().is_empty()) {
+    if config.apps.len() > 20
+        || config
+            .apps
+            .iter()
+            .any(|app| app.title.trim().is_empty() || !valid_action(&app.action))
+    {
         return (StatusCode::BAD_REQUEST, "Gecersiz menu yapilandirmasi").into_response();
     }
     let payload = match serde_json::to_vec_pretty(&config) {
@@ -257,6 +271,107 @@ async fn put_config(
             .into_response(),
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     }
+}
+
+fn valid_action(action: &str) -> bool {
+    matches!(
+        action,
+        "phone" | "youtube-kids" | "gcompris" | "tuxpaint" | "settings"
+    ) || action
+        .strip_prefix("desktop:")
+        .is_some_and(valid_desktop_id)
+}
+
+fn valid_desktop_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 160
+        && id
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || ".-_".contains(character))
+}
+
+async fn installed_apps() -> Json<Vec<InstalledApp>> {
+    let mut apps = Vec::new();
+    let mut directories = vec![
+        PathBuf::from("/usr/share/applications"),
+        PathBuf::from("/usr/local/share/applications"),
+    ];
+    if let Ok(home) = std::env::var("HOME") {
+        directories.push(PathBuf::from(home).join(".local/share/applications"));
+    }
+    for directory in directories {
+        collect_desktop_apps(&directory, &mut apps).await;
+    }
+    let mut seen = HashSet::new();
+    apps.retain(|app| seen.insert(app.id.clone()));
+    apps.sort_by_cached_key(|app| app.name.to_lowercase());
+    Json(apps)
+}
+
+async fn collect_desktop_apps(directory: &Path, apps: &mut Vec<InstalledApp>) {
+    let Ok(mut entries) = tokio::fs::read_dir(directory).await else {
+        return;
+    };
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let path = entry.path();
+        if path.extension() != Some(OsStr::new("desktop")) {
+            continue;
+        }
+        let Some(id) = path.file_stem().and_then(OsStr::to_str) else {
+            continue;
+        };
+        if !valid_desktop_id(id) {
+            continue;
+        }
+        let Ok(contents) = tokio::fs::read_to_string(&path).await else {
+            continue;
+        };
+        if let Some(app) = parse_desktop_entry(id, &contents) {
+            apps.push(app);
+        }
+    }
+}
+
+fn parse_desktop_entry(id: &str, contents: &str) -> Option<InstalledApp> {
+    let mut in_entry = false;
+    let mut fields = HashMap::new();
+    for line in contents.lines().map(str::trim) {
+        if line.starts_with('[') {
+            in_entry = line == "[Desktop Entry]";
+            continue;
+        }
+        if !in_entry || line.starts_with('#') {
+            continue;
+        }
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        fields.entry(key).or_insert(value);
+    }
+    if fields.get("Type") != Some(&"Application")
+        || fields.get("Hidden") == Some(&"true")
+        || fields.get("NoDisplay") == Some(&"true")
+        || fields
+            .get("Exec")
+            .is_none_or(|value| value.trim().is_empty())
+    {
+        return None;
+    }
+    let name = fields
+        .get("Name[tr]")
+        .or_else(|| fields.get("Name"))
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())?;
+    let comment = fields
+        .get("Comment[tr]")
+        .or_else(|| fields.get("Comment"))
+        .map(|value| value.trim())
+        .unwrap_or("");
+    Some(InstalledApp {
+        id: id.to_string(),
+        name: name.to_string(),
+        comment: comment.to_string(),
+    })
 }
 
 async fn read_config(path: &Path) -> TabletConfig {
@@ -568,5 +683,33 @@ async fn synthesize(
         (Some(format!("/audio/{local_name}")), Some("espeak-ng"))
     } else {
         (None, None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_visible_desktop_application() {
+        let entry = "[Desktop Entry]\nType=Application\nName=Paint\nName[tr]=Boya\nComment=Cizim\nExec=paint %U\n";
+        let app = parse_desktop_entry("paint", entry).expect("visible app");
+        assert_eq!(app.id, "paint");
+        assert_eq!(app.name, "Boya");
+        assert_eq!(app.comment, "Cizim");
+    }
+
+    #[test]
+    fn hides_non_menu_desktop_application() {
+        let entry = "[Desktop Entry]\nType=Application\nName=Helper\nNoDisplay=true\nExec=helper\n";
+        assert!(parse_desktop_entry("helper", entry).is_none());
+    }
+
+    #[test]
+    fn accepts_only_known_or_safe_desktop_actions() {
+        assert!(valid_action("phone"));
+        assert!(valid_action("desktop:org.example.Paint"));
+        assert!(!valid_action("desktop:../../bin/sh"));
+        assert!(!valid_action("command:shutdown"));
     }
 }

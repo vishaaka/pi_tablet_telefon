@@ -10,9 +10,18 @@
   <header><div><strong>Pi Tablet</strong><span>Yönetim paneli</span></div><div class="connection"><label>Pi adresi<input id="pi-address" value="http://192.168.1.22:8090"></label><button id="connect">Bağlan</button><button id="save">Kaydet ve uygula</button></div></header>
   <main>
     <section class="editor">
-      <div class="section-title"><h1>Ana menü</h1><button id="add">+ Uygulama ekle</button></div>
+      <div class="section-title"><h1>Ana menü</h1><div class="system-add"><select id="built-in-select"><option value="phone">Telefon</option><option value="youtube-kids">YouTube Kids</option><option value="gcompris">GCompris</option><option value="tuxpaint">Tux Paint</option><option value="settings">Ses ayarları</option></select><button id="add-built-in">Kiosk bölümünü ekle</button></div></div>
       <label>Tablet başlığı<input id="title" maxlength="32"></label>
       <label>Arka plan rengi<input id="background" type="color"></label>
+      <section class="installed-apps">
+        <div>
+          <strong>Pi'de kurulu uygulamadan ekle</strong>
+          <span>Yeni bir uygulama Pi'ye kurulduğunda listeyi yenile.</span>
+        </div>
+        <select id="installed-app-select"><option value="">Uygulamalar yükleniyor...</option></select>
+        <button id="refresh-apps" title="Kurulu uygulama listesini yenile">Yenile</button>
+        <button id="add-installed">Menüye ekle</button>
+      </section>
       <div id="apps"></div>
     </section>
     <aside>
@@ -22,7 +31,7 @@
       <p>Değişiklikler yazarken önizlenir. Kaydettiğinde tablet birkaç saniye içinde yenilenir.</p>
     </aside>
   </main>
-  <template id="app-template"><article class="app-editor"><div class="grab">⋮⋮</div><div class="fields"><label>Ad<input data-key="title"></label><label>Alt yazı<input data-key="subtitle"></label><label>Renk<input data-key="color" type="color"></label><label>Açılacak bölüm<select data-key="action"><option value="phone">Telefon</option><option value="youtube-kids">YouTube Kids</option><option value="gcompris">GCompris</option><option value="tuxpaint">Tux Paint</option><option value="settings">Ses ayarları</option></select></label></div><div class="actions"><button data-move="-1">↑</button><button data-move="1">↓</button><button data-remove>Sil</button></div></article></template>
+  <template id="app-template"><article class="app-editor"><div class="grab">⋮⋮</div><div class="fields"><label>Ad<input data-key="title"></label><label>Alt yazı<input data-key="subtitle"></label><label>Renk<input data-key="color" type="color"></label><label>Açılacak uygulama<input data-key="action" readonly></label></div><div class="actions"><button data-move="-1" title="Yukarı taşı">↑</button><button data-move="1" title="Aşağı taşı">↓</button><button data-remove>Sil</button></div></article></template>
   <script src="app.js"></script>
 </body>
 </html>
