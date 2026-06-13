@@ -5,22 +5,43 @@ export struct MenuItem {
     subtitle: string,
     tile-color: color,
     action: string,
+    icon: string,
 }
 
 component AppTile inherits Rectangle {
     in property <string> title;
-    in property <string> subtitle;
+    in property <string> icon;
     in property <color> tile-color;
     callback clicked;
-    background: tile-color;
-    border-radius: 8px;
-    height: 118px;
+    background: transparent;
+    height: 112px;
     TouchArea { clicked => { root.clicked(); } }
     VerticalLayout {
-        padding: 14px;
-        spacing: 8px;
-        Text { text: title; font-size: 21px; font-weight: 700; color: #151519; }
-        Text { text: subtitle; font-size: 13px; color: #555560; wrap: word-wrap; }
+        alignment: center;
+        spacing: 6px;
+        Rectangle {
+            width: 68px;
+            height: 68px;
+            border-radius: 17px;
+            background: tile-color;
+            Text {
+                text: icon;
+                font-size: 35px;
+                font-weight: 600;
+                color: #202027;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        Text {
+            text: title;
+            height: 24px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #24242a;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
     }
 }
 
@@ -114,12 +135,12 @@ export component TabletShell inherits Window {
         if screen == "home": VerticalLayout {
             spacing: 12px;
             GridLayout {
-                spacing: 12px;
+                spacing: 8px;
                 for item[index] in menu-items: AppTile {
-                    row: index / 2;
-                    col: Math.mod(index, 2);
+                    row: index / 4;
+                    col: Math.mod(index, 4);
                     title: item.title;
-                    subtitle: item.action == "settings" ? volume-percent + "%" : item.subtitle;
+                    icon: item.icon;
                     tile-color: item.tile-color;
                     clicked => { root.open-app(item.action); }
                 }

@@ -5,11 +5,11 @@ const installedSelect = $("#installed-app-select");
 let config = { title: "Pi Tablet", background: "#f7f7fa", apps: [] };
 let installedApps = [];
 const builtInApps = {
-  phone: { title: "Telefon", subtitle: "AI kişileri ara", color: "#bfe8d2" },
-  "youtube-kids": { title: "YouTube Kids", subtitle: "Güvenli video", color: "#ffd1d1" },
-  gcompris: { title: "Eğitim", subtitle: "GCompris etkinlikleri", color: "#d4ddff" },
-  tuxpaint: { title: "Çizim", subtitle: "Tux Paint", color: "#ffe3b5" },
-  settings: { title: "Ses", subtitle: "Ses ayarları", color: "#dce8ef" },
+  phone: { title: "Telefon", subtitle: "AI kişileri ara", color: "#bfe8d2", icon: "☎" },
+  "youtube-kids": { title: "YouTube Kids", subtitle: "Güvenli video", color: "#ffd1d1", icon: "▶" },
+  gcompris: { title: "Eğitim", subtitle: "GCompris etkinlikleri", color: "#d4ddff", icon: "ABC" },
+  tuxpaint: { title: "Çizim", subtitle: "Tux Paint", color: "#ffe3b5", icon: "✎" },
+  settings: { title: "Ses", subtitle: "Ses ayarları", color: "#dce8ef", icon: "♪" },
 };
 
 const defaultBase = location.protocol === "file:" ? "http://192.168.1.22:8090" : location.origin;
@@ -17,6 +17,15 @@ $("#pi-address").value = localStorage.getItem("pi-tablet-address") || defaultBas
 const api = (path) => $("#pi-address").value.replace(/\/+$/, "") + path;
 const escapeHtml = (value) =>
   String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+const iconForAction = (action = "") => {
+  if (builtInApps[action]) return builtInApps[action].icon;
+  if (action.includes("chromium") || action.includes("firefox")) return "◎";
+  if (action.includes("calculator") || action.includes("galculator")) return "=";
+  if (action.includes("terminal")) return ">_";
+  if (action.includes("paint") || action.includes("draw")) return "✎";
+  if (action.includes("game")) return "✦";
+  return "◆";
+};
 
 const preview = () => {
   config.title = $("#title").value;
@@ -24,7 +33,7 @@ const preview = () => {
   $("#preview-title").textContent = config.title;
   $(".tablet-screen").style.background = config.background;
   $("#preview-apps").innerHTML = config.apps
-    .map((app) => `<div class="tile" style="background:${app.color}"><strong>${escapeHtml(app.title)}</strong><small>${escapeHtml(app.subtitle)}</small></div>`)
+    .map((app) => `<div class="tile"><div class="tile-icon" style="background:${app.color}">${escapeHtml(app.icon || iconForAction(app.action))}</div><strong>${escapeHtml(app.title)}</strong></div>`)
     .join("");
 };
 
@@ -33,6 +42,7 @@ const render = () => {
   $("#background").value = config.background;
   appsEl.innerHTML = "";
   config.apps.forEach((app, index) => {
+    app.icon ||= iconForAction(app.action);
     const node = template.content.cloneNode(true);
     const article = node.querySelector("article");
     article.querySelectorAll("[data-key]").forEach((element) => {
@@ -102,6 +112,7 @@ $("#add-installed").onclick = () => {
     subtitle: selected.comment || "Pi uygulaması",
     color: "#dce8ef",
     action: `desktop:${selected.id}`,
+    icon: iconForAction(`desktop:${selected.id}`),
   });
   render();
 };

@@ -109,6 +109,8 @@ struct MenuApp {
     subtitle: String,
     color: String,
     action: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    icon: Option<String>,
 }
 
 #[derive(Clone, Serialize)]
@@ -128,30 +130,35 @@ fn default_config() -> TabletConfig {
                 subtitle: "AI kisileri ara".into(),
                 color: "#bfe8d2".into(),
                 action: "phone".into(),
+                icon: Some("☎".into()),
             },
             MenuApp {
                 title: "YouTube Kids".into(),
                 subtitle: "Guvenli video".into(),
                 color: "#ffd1d1".into(),
                 action: "youtube-kids".into(),
+                icon: Some("▶".into()),
             },
             MenuApp {
                 title: "Egitim".into(),
                 subtitle: "GCompris etkinlikleri".into(),
                 color: "#d4ddff".into(),
                 action: "gcompris".into(),
+                icon: Some("ABC".into()),
             },
             MenuApp {
                 title: "Cizim".into(),
                 subtitle: "Tux Paint".into(),
                 color: "#ffe3b5".into(),
                 action: "tuxpaint".into(),
+                icon: Some("✎".into()),
             },
             MenuApp {
                 title: "Ses".into(),
                 subtitle: "Ses ayarlari".into(),
                 color: "#dce8ef".into(),
                 action: "settings".into(),
+                icon: Some("♪".into()),
             },
         ],
     }

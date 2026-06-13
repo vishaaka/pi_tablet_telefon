@@ -31,7 +31,7 @@
       <p>Değişiklikler yazarken önizlenir. Kaydettiğinde tablet birkaç saniye içinde yenilenir.</p>
     </aside>
   </main>
-  <template id="app-template"><article class="app-editor"><div class="grab">⋮⋮</div><div class="fields"><label>Ad<input data-key="title"></label><label>Alt yazı<input data-key="subtitle"></label><label>Renk<input data-key="color" type="color"></label><label>Açılacak uygulama<input data-key="action" readonly></label></div><div class="actions"><button data-move="-1" title="Yukarı taşı">↑</button><button data-move="1" title="Aşağı taşı">↓</button><button data-remove>Sil</button></div></article></template>
+  <template id="app-template"><article class="app-editor"><div class="grab">⋮⋮</div><div class="fields"><label>İkon<select data-key="icon"><option value="☎">☎ Telefon</option><option value="▶">▶ Video</option><option value="ABC">ABC Eğitim</option><option value="✎">✎ Çizim</option><option value="♪">♪ Ses</option><option value="◎">◎ İnternet</option><option value="=">= Hesap</option><option value=">_">&gt;_ Terminal</option><option value="✦">✦ Oyun</option><option value="◆">◆ Uygulama</option></select></label><label>Ad<input data-key="title"></label><label>Alt yazı<input data-key="subtitle"></label><label>Renk<input data-key="color" type="color"></label><label>Açılacak uygulama<input data-key="action" readonly></label></div><div class="actions"><button data-move="-1" title="Yukarı taşı">↑</button><button data-move="1" title="Aşağı taşı">↓</button><button data-remove>Sil</button></div></article></template>
   <script src="app.js"></script>
 </body>
 </html>

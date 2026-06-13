@@ -125,6 +125,23 @@ fn color(value: &str) -> Color {
     Color::from_rgb_u8(247, 247, 250)
 }
 
+fn action_icon(action: &str) -> &'static str {
+    match action {
+        "phone" => "☎",
+        "youtube-kids" => "▶",
+        "gcompris" => "ABC",
+        "tuxpaint" => "✎",
+        "settings" => "♪",
+        value if value.contains("chromium") || value.contains("firefox") => "◎",
+        value if value.contains("calculator") || value.contains("galculator") => "=",
+        value if value.contains("terminal") => ">_",
+        value if value.contains("camera") => "●",
+        value if value.contains("paint") || value.contains("draw") => "✎",
+        value if value.contains("game") => "✦",
+        _ => "◆",
+    }
+}
+
 fn apply_menu_config(ui: &TabletShell) {
     let Some(config) = Command::new("curl")
         .args(["-fsS", "http://127.0.0.1:8090/api/config"])
@@ -145,6 +162,11 @@ fn apply_menu_config(ui: &TabletShell) {
             subtitle: SharedString::from(app["subtitle"].as_str().unwrap_or("")),
             tile_color: color(app["color"].as_str().unwrap_or("#dce8ef")),
             action: SharedString::from(app["action"].as_str().unwrap_or("settings")),
+            icon: SharedString::from(
+                app["icon"]
+                    .as_str()
+                    .unwrap_or_else(|| action_icon(app["action"].as_str().unwrap_or("settings"))),
+            ),
         })
         .collect::<Vec<_>>();
     ui.set_menu_items(ModelRc::new(VecModel::from(items)));
