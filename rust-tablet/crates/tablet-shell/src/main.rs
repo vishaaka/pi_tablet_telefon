@@ -1,4 +1,4 @@
-use slint::{Color, ModelRc, SharedString, VecModel};
+use slint::{Color, Image, ModelRc, SharedString, VecModel};
 use std::{
     path::PathBuf,
     process::Command,
@@ -127,19 +127,29 @@ fn color(value: &str) -> Color {
 
 fn action_icon(action: &str) -> &'static str {
     match action {
-        "phone" => "☎",
-        "youtube-kids" => "▶",
-        "gcompris" => "ABC",
-        "tuxpaint" => "✎",
-        "settings" => "♪",
-        value if value.contains("chromium") || value.contains("firefox") => "◎",
-        value if value.contains("calculator") || value.contains("galculator") => "=",
-        value if value.contains("terminal") => ">_",
-        value if value.contains("camera") => "●",
-        value if value.contains("paint") || value.contains("draw") => "✎",
-        value if value.contains("game") => "✦",
-        _ => "◆",
+        "phone" => "phone.png",
+        "youtube-kids" => "video.png",
+        "gcompris" => "education.png",
+        "tuxpaint" => "drawing.png",
+        "settings" => "audio.png",
+        value if value.contains("chromium") || value.contains("firefox") => "browser.png",
+        value if value.contains("calculator") || value.contains("galculator") => "calculator.png",
+        value if value.contains("terminal") => "terminal.png",
+        value if value.contains("camera") => "camera.png",
+        value if value.contains("paint") || value.contains("draw") => "drawing.png",
+        value if value.contains("game") => "game.png",
+        _ => "app.png",
     }
+}
+
+fn load_icon(icon: &str, action: &str) -> Image {
+    let icon = if icon.ends_with(".png") {
+        icon
+    } else {
+        action_icon(action)
+    };
+    Image::load_from_path(&PathBuf::from("/var/lib/pi-tablet-rust/icons").join(icon))
+        .unwrap_or_default()
 }
 
 fn apply_menu_config(ui: &TabletShell) {
@@ -162,10 +172,9 @@ fn apply_menu_config(ui: &TabletShell) {
             subtitle: SharedString::from(app["subtitle"].as_str().unwrap_or("")),
             tile_color: color(app["color"].as_str().unwrap_or("#dce8ef")),
             action: SharedString::from(app["action"].as_str().unwrap_or("settings")),
-            icon: SharedString::from(
-                app["icon"]
-                    .as_str()
-                    .unwrap_or_else(|| action_icon(app["action"].as_str().unwrap_or("settings"))),
+            icon: load_icon(
+                app["icon"].as_str().unwrap_or(""),
+                app["action"].as_str().unwrap_or("settings"),
             ),
         })
         .collect::<Vec<_>>();

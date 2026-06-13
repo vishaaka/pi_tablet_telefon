@@ -7,7 +7,7 @@ use std::{
 
 use axum::{
     Json, Router,
-    extract::{Path as AxumPath, State},
+    extract::{Multipart, Path as AxumPath, State},
     http::{StatusCode, header},
     response::{IntoResponse, Redirect},
     routing::{get, post},
@@ -93,6 +93,7 @@ struct Call {
 struct AppState {
     calls: Arc<RwLock<HashMap<Uuid, Call>>>,
     audio_dir: PathBuf,
+    icon_dir: PathBuf,
     config_path: PathBuf,
 }
 
@@ -130,35 +131,35 @@ fn default_config() -> TabletConfig {
                 subtitle: "AI kisileri ara".into(),
                 color: "#bfe8d2".into(),
                 action: "phone".into(),
-                icon: Some("☎".into()),
+                icon: Some("phone.png".into()),
             },
             MenuApp {
                 title: "YouTube Kids".into(),
                 subtitle: "Guvenli video".into(),
                 color: "#ffd1d1".into(),
                 action: "youtube-kids".into(),
-                icon: Some("▶".into()),
+                icon: Some("video.png".into()),
             },
             MenuApp {
                 title: "Egitim".into(),
                 subtitle: "GCompris etkinlikleri".into(),
                 color: "#d4ddff".into(),
                 action: "gcompris".into(),
-                icon: Some("ABC".into()),
+                icon: Some("education.png".into()),
             },
             MenuApp {
                 title: "Cizim".into(),
                 subtitle: "Tux Paint".into(),
                 color: "#ffe3b5".into(),
                 action: "tuxpaint".into(),
-                icon: Some("✎".into()),
+                icon: Some("drawing.png".into()),
             },
             MenuApp {
                 title: "Ses".into(),
                 subtitle: "Ses ayarlari".into(),
                 color: "#dce8ef".into(),
                 action: "settings".into(),
-                icon: Some("♪".into()),
+                icon: Some("audio.png".into()),
             },
         ],
     }
@@ -207,15 +208,22 @@ async fn main() {
     let config_path = std::env::var("PI_TABLET_CONFIG")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("/var/lib/pi-tablet-rust/tablet-config.json"));
+    let icon_dir = std::env::var("PI_TABLET_ICON_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("/var/lib/pi-tablet-rust/icons"));
     let admin_dir = std::env::var("PI_TABLET_ADMIN_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("/opt/pi-tablet-rust/admin"));
     tokio::fs::create_dir_all(&audio_dir)
         .await
         .expect("audio directory");
+    tokio::fs::create_dir_all(&icon_dir)
+        .await
+        .expect("icon directory");
     let state = AppState {
         calls: Arc::new(RwLock::new(HashMap::new())),
         audio_dir: audio_dir.clone(),
+        icon_dir: icon_dir.clone(),
         config_path,
     };
 
@@ -224,6 +232,7 @@ async fn main() {
         .route("/health", get(health))
         .route("/api/config", get(get_config).put(put_config))
         .route("/api/installed-apps", get(installed_apps))
+        .route("/api/icons", post(upload_icon))
         .route("/system/exit-youtube-kids", get(exit_youtube_kids))
         .route("/contacts", get(contacts))
         .route("/calls/start", post(start_call))
@@ -231,6 +240,7 @@ async fn main() {
         .route("/calls/{call_id}/listen", post(listen))
         .route("/calls/{call_id}/end", post(end_call))
         .nest_service("/audio", ServeDir::new(audio_dir))
+        .nest_service("/icons", ServeDir::new(icon_dir))
         .nest_service(
             "/admin",
             ServeDir::new(admin_dir).append_index_html_on_directories(true),
@@ -258,10 +268,14 @@ async fn put_config(
     Json(config): Json<TabletConfig>,
 ) -> impl IntoResponse {
     if config.apps.len() > 20
-        || config
-            .apps
-            .iter()
-            .any(|app| app.title.trim().is_empty() || !valid_action(&app.action))
+        || config.apps.iter().any(|app| {
+            app.title.trim().is_empty()
+                || !valid_action(&app.action)
+                || app
+                    .icon
+                    .as_deref()
+                    .is_some_and(|icon| !valid_icon_name(icon))
+        })
     {
         return (StatusCode::BAD_REQUEST, "Gecersiz menu yapilandirmasi").into_response();
     }
@@ -278,6 +292,48 @@ async fn put_config(
             .into_response(),
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     }
+}
+
+fn valid_icon_name(icon: &str) -> bool {
+    icon.len() <= 80
+        && icon.ends_with(".png")
+        && icon
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || ".-_".contains(character))
+}
+
+async fn upload_icon(State(state): State<AppState>, mut multipart: Multipart) -> impl IntoResponse {
+    while let Ok(Some(field)) = multipart.next_field().await {
+        let is_png_name = field
+            .file_name()
+            .is_some_and(|name| name.to_lowercase().ends_with(".png"));
+        if !is_png_name {
+            continue;
+        }
+        let Ok(data) = field.bytes().await else {
+            return StatusCode::BAD_REQUEST.into_response();
+        };
+        if data.len() > 1_500_000 || !data.starts_with(b"\x89PNG\r\n\x1a\n") {
+            return (
+                StatusCode::BAD_REQUEST,
+                "Yalnizca 1.5 MB altinda PNG kabul edilir",
+            )
+                .into_response();
+        }
+        let icon = format!("custom-{}.png", Uuid::new_v4());
+        if tokio::fs::write(state.icon_dir.join(&icon), data)
+            .await
+            .is_err()
+        {
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+        return Json(serde_json::json!({
+            "icon": icon,
+            "url": format!("/icons/{icon}")
+        }))
+        .into_response();
+    }
+    (StatusCode::BAD_REQUEST, "PNG dosyasi bulunamadi").into_response()
 }
 
 fn valid_action(action: &str) -> bool {
@@ -718,5 +774,13 @@ mod tests {
         assert!(valid_action("desktop:org.example.Paint"));
         assert!(!valid_action("desktop:../../bin/sh"));
         assert!(!valid_action("command:shutdown"));
+    }
+
+    #[test]
+    fn accepts_only_safe_png_icon_names() {
+        assert!(valid_icon_name("phone.png"));
+        assert!(valid_icon_name("custom-123.png"));
+        assert!(!valid_icon_name("../phone.png"));
+        assert!(!valid_icon_name("phone.svg"));
     }
 }

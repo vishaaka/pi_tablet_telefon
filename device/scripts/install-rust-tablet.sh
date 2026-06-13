@@ -44,7 +44,7 @@ export PATH="$USER_HOME/.cargo/bin:$PATH"
 cd "$REPO_DIR/rust-tablet"
 CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}" cargo build --release
 
-sudo mkdir -p "$INSTALL_DIR/bin" "$INSTALL_DIR/admin" /var/lib/pi-tablet-rust/audio /var/lib/pi-tablet-rust/stt
+sudo mkdir -p "$INSTALL_DIR/bin" "$INSTALL_DIR/admin" /var/lib/pi-tablet-rust/audio /var/lib/pi-tablet-rust/icons /var/lib/pi-tablet-rust/stt
 sudo install -m 0755 target/release/pi-tablet-shell "$INSTALL_DIR/bin/pi-tablet-shell"
 sudo install -m 0755 target/release/pi-tablet-backend-rs "$INSTALL_DIR/bin/pi-tablet-backend-rs"
 sudo install -m 0755 "$REPO_DIR/device/scripts/launch-youtube-kids.sh" "$INSTALL_DIR/bin/launch-youtube-kids"
@@ -54,6 +54,7 @@ sudo install -m 0755 "$REPO_DIR/device/scripts/start-rust-tablet-shell.sh" "$INS
 sudo rm -rf "$INSTALL_DIR/youtube-kids-touch"
 sudo cp -R "$REPO_DIR/device/youtube-kids-touch" "$INSTALL_DIR/youtube-kids-touch"
 sudo cp -R "$REPO_DIR/device/admin/." "$INSTALL_DIR/admin/"
+sudo cp -R "$REPO_DIR/device/icons/." /var/lib/pi-tablet-rust/icons/
 bash "$REPO_DIR/device/scripts/generate-phone-sounds.sh" "$INSTALL_DIR/sounds"
 sudo chown -R "$USER_NAME:$USER_NAME" /var/lib/pi-tablet-rust
 
@@ -82,6 +83,7 @@ User=$USER_NAME
 Group=$USER_NAME
 Environment=HOME=$USER_HOME
 Environment=PI_TABLET_AUDIO_DIR=/var/lib/pi-tablet-rust/audio
+Environment=PI_TABLET_ICON_DIR=/var/lib/pi-tablet-rust/icons
 Environment=PI_EDGE_TTS_COMMAND=$INSTALL_DIR/edge-tts/bin/edge-tts
 ExecStart=$INSTALL_DIR/bin/pi-tablet-backend-rs
 Restart=always

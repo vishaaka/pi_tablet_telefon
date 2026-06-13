@@ -5,11 +5,11 @@ const installedSelect = $("#installed-app-select");
 let config = { title: "Pi Tablet", background: "#f7f7fa", apps: [] };
 let installedApps = [];
 const builtInApps = {
-  phone: { title: "Telefon", subtitle: "AI kişileri ara", color: "#bfe8d2", icon: "☎" },
-  "youtube-kids": { title: "YouTube Kids", subtitle: "Güvenli video", color: "#ffd1d1", icon: "▶" },
-  gcompris: { title: "Eğitim", subtitle: "GCompris etkinlikleri", color: "#d4ddff", icon: "ABC" },
-  tuxpaint: { title: "Çizim", subtitle: "Tux Paint", color: "#ffe3b5", icon: "✎" },
-  settings: { title: "Ses", subtitle: "Ses ayarları", color: "#dce8ef", icon: "♪" },
+  phone: { title: "Telefon", subtitle: "AI kişileri ara", color: "#bfe8d2", icon: "phone.png" },
+  "youtube-kids": { title: "YouTube Kids", subtitle: "Güvenli video", color: "#ffd1d1", icon: "video.png" },
+  gcompris: { title: "Eğitim", subtitle: "GCompris etkinlikleri", color: "#d4ddff", icon: "education.png" },
+  tuxpaint: { title: "Çizim", subtitle: "Tux Paint", color: "#ffe3b5", icon: "drawing.png" },
+  settings: { title: "Ses", subtitle: "Ses ayarları", color: "#dce8ef", icon: "audio.png" },
 };
 
 const defaultBase = location.protocol === "file:" ? "http://192.168.1.22:8090" : location.origin;
@@ -19,13 +19,15 @@ const escapeHtml = (value) =>
   String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
 const iconForAction = (action = "") => {
   if (builtInApps[action]) return builtInApps[action].icon;
-  if (action.includes("chromium") || action.includes("firefox")) return "◎";
-  if (action.includes("calculator") || action.includes("galculator")) return "=";
-  if (action.includes("terminal")) return ">_";
-  if (action.includes("paint") || action.includes("draw")) return "✎";
-  if (action.includes("game")) return "✦";
-  return "◆";
+  if (action.includes("chromium") || action.includes("firefox")) return "browser.png";
+  if (action.includes("calculator") || action.includes("galculator")) return "calculator.png";
+  if (action.includes("terminal")) return "terminal.png";
+  if (action.includes("camera")) return "camera.png";
+  if (action.includes("paint") || action.includes("draw")) return "drawing.png";
+  if (action.includes("game")) return "game.png";
+  return "app.png";
 };
+const iconUrl = (icon, action) => api(`/icons/${encodeURIComponent(icon?.endsWith(".png") ? icon : iconForAction(action))}`);
 
 const preview = () => {
   config.title = $("#title").value;
@@ -33,7 +35,7 @@ const preview = () => {
   $("#preview-title").textContent = config.title;
   $(".tablet-screen").style.background = config.background;
   $("#preview-apps").innerHTML = config.apps
-    .map((app) => `<div class="tile"><div class="tile-icon" style="background:${app.color}">${escapeHtml(app.icon || iconForAction(app.action))}</div><strong>${escapeHtml(app.title)}</strong></div>`)
+    .map((app) => `<div class="tile"><div class="tile-icon" style="background:${app.color}"><img src="${iconUrl(app.icon, app.action)}" alt=""></div><strong>${escapeHtml(app.title)}</strong></div>`)
     .join("");
 };
 
@@ -42,9 +44,36 @@ const render = () => {
   $("#background").value = config.background;
   appsEl.innerHTML = "";
   config.apps.forEach((app, index) => {
-    app.icon ||= iconForAction(app.action);
+    if (!app.icon?.endsWith(".png")) app.icon = iconForAction(app.action);
     const node = template.content.cloneNode(true);
     const article = node.querySelector("article");
+    const iconPreview = article.querySelector("[data-icon-preview]");
+    const iconFile = article.querySelector("[data-icon-file]");
+    const iconState = article.querySelector("[data-icon-state]");
+    iconPreview.src = iconUrl(app.icon, app.action);
+    iconFile.onchange = async () => {
+      const file = iconFile.files[0];
+      if (!file) return;
+      if (file.type !== "image/png" || file.size > 1_500_000) {
+        iconState.textContent = "1.5 MB altında PNG seçin";
+        iconFile.value = "";
+        return;
+      }
+      iconState.textContent = "Yükleniyor...";
+      const body = new FormData();
+      body.append("icon", file);
+      try {
+        const response = await fetch(api("/api/icons"), { method: "POST", body });
+        if (!response.ok) throw new Error();
+        const uploaded = await response.json();
+        app.icon = uploaded.icon;
+        iconPreview.src = iconUrl(app.icon, app.action);
+        iconState.textContent = "Yüklendi; kaydedin";
+        preview();
+      } catch {
+        iconState.textContent = "Yükleme başarısız";
+      }
+    };
     article.querySelectorAll("[data-key]").forEach((element) => {
       element.value = app[element.dataset.key];
       element.oninput = () => {
