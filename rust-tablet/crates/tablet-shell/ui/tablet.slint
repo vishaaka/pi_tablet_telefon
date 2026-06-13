@@ -19,21 +19,25 @@ component AppTile inherits Rectangle {
     height: 112px;
     TouchArea { clicked => { root.clicked(); } }
     VerticalLayout {
-        alignment: center;
         spacing: 6px;
-        Rectangle {
-            width: 68px;
+        HorizontalLayout {
             height: 68px;
-            border-radius: 17px;
-            background: tile-color;
-            Text {
-                text: icon;
-                font-size: 35px;
-                font-weight: 600;
-                color: #202027;
-                horizontal-alignment: center;
-                vertical-alignment: center;
+            Rectangle { horizontal-stretch: 1; background: transparent; }
+            Rectangle {
+                width: 68px;
+                height: 68px;
+                border-radius: 17px;
+                background: tile-color;
+                Text {
+                    text: icon;
+                    font-size: 35px;
+                    font-weight: 600;
+                    color: #202027;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
             }
+            Rectangle { horizontal-stretch: 1; background: transparent; }
         }
         Text {
             text: title;
