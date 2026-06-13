@@ -53,6 +53,20 @@ component SystemNavKey inherits Rectangle {
     }
 }
 
+component CallOption inherits Rectangle {
+    in property <string> icon;
+    in property <string> label;
+    callback clicked;
+    background: transparent;
+    height: 72px;
+    TouchArea { clicked => { root.clicked(); } }
+    VerticalLayout {
+        spacing: 4px;
+        Text { text: icon; color: #30303a; font-size: 25px; horizontal-alignment: center; }
+        Text { text: label; color: #555560; font-size: 11px; horizontal-alignment: center; }
+    }
+}
+
 export component TabletShell inherits Window {
     title: "Pi Tablet";
     background: tablet-background;
@@ -63,11 +77,14 @@ export component TabletShell inherits Window {
     in-out property <string> dialed: "";
     in-out property <string> status: "Hazir";
     in-out property <bool> in-call: false;
+    in-out property <string> call-state: "idle";
+    in-out property <string> calling-phone: "";
     in-out property <string> contact-name: "";
     in-out property <string> last-reply: "";
     in-out property <bool> listening: false;
     in-out property <string> phone-view: "keypad";
     in-out property <string> suggested-name: "";
+    in-out property <string> suggested-initial: "A";
     in-out property <string> suggested-phone: "";
     in-out property <int> volume-percent: 150;
     callback open-app(string);
@@ -83,7 +100,7 @@ export component TabletShell inherits Window {
         padding: 18px;
         spacing: 14px;
 
-        HorizontalLayout {
+        if !(screen == "phone" && call-state != "idle"): HorizontalLayout {
             height: 44px;
             Text { text: screen == "home" ? tablet-title : screen == "phone" ? "Telefon" : screen == "settings" ? "Ses ayarlari" : "Son uygulamalar"; font-size: 28px; font-weight: 700; color: #111115; }
             Text { horizontal-stretch: 1; text: status; horizontal-alignment: right; vertical-alignment: center; color: #676772; font-size: 13px; }
@@ -106,26 +123,29 @@ export component TabletShell inherits Window {
 
         if screen == "phone": VerticalLayout {
             spacing: 6px;
-            if !in-call && phone-view == "keypad": VerticalLayout {
+            if call-state == "idle" && phone-view == "keypad": VerticalLayout {
                 spacing: 5px;
                 if suggested-name != "": Rectangle {
-                    height: 48px;
-                    background: #ffffff;
-                    border-color: #dedee4;
-                    border-width: 1px;
-                    border-radius: 8px;
+                    height: 54px;
+                    background: transparent;
                     TouchArea { clicked => { dialed = suggested-phone; } }
                     HorizontalLayout {
-                        padding-left: 12px;
-                        padding-right: 12px;
-                        Text { text: suggested-name; font-size: 16px; font-weight: 700; color: #151519; vertical-alignment: center; }
+                        spacing: 10px;
+                        Rectangle {
+                            width: 38px;
+                            height: 38px;
+                            border-radius: 19px;
+                            background: #77c8bb;
+                            Text { text: suggested-initial; color: white; font-size: 18px; horizontal-alignment: center; vertical-alignment: center; }
+                        }
+                        Text { text: suggested-name; font-size: 16px; color: #151519; vertical-alignment: center; }
                         Text { horizontal-stretch: 1; text: suggested-phone; font-size: 12px; color: #777781; horizontal-alignment: right; vertical-alignment: center; }
                     }
                 }
-                Rectangle { height: 44px; background: transparent; Text { text: dialed; font-size: 30px; horizontal-alignment: center; vertical-alignment: center; color: #151519; } }
+                Rectangle { height: 54px; background: transparent; Text { text: dialed; font-size: 40px; horizontal-alignment: center; vertical-alignment: center; color: #111115; } }
                 GridLayout {
-                    height: suggested-name == "" ? 212px : 186px;
-                    spacing: 3px;
+                    height: suggested-name == "" ? 250px : 220px;
+                    spacing: 6px;
                     DialKey { row: 0; col: 0; digit: "1"; letters: ""; clicked => { dialed += "1"; root.phone-tone("1"); } }
                     DialKey { row: 0; col: 1; digit: "2"; letters: "ABC"; clicked => { dialed += "2"; root.phone-tone("2"); } }
                     DialKey { row: 0; col: 2; digit: "3"; letters: "DEF"; clicked => { dialed += "3"; root.phone-tone("3"); } }
@@ -140,20 +160,37 @@ export component TabletShell inherits Window {
                     DialKey { row: 3; col: 2; digit: "#"; letters: ""; clicked => { dialed += "#"; root.phone-tone("hash"); } }
                 }
                 HorizontalLayout {
-                    height: 58px;
-                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                    height: 68px;
                     Rectangle {
-                        width: 58px;
-                        background: #0aaa68;
-                        border-radius: 29px;
-                        Text { text: "Ara"; color: white; font-size: 16px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
-                        TouchArea { clicked => { status = dialed == "" ? "Asya AI araniyor..." : dialed + " araniyor..."; root.start-call(dialed); } }
+                        horizontal-stretch: 1;
+                        background: transparent;
+                        Text { text: "▣"; color: #0aaa68; font-size: 29px; horizontal-alignment: center; vertical-alignment: center; }
                     }
-                    Rectangle { horizontal-stretch: 1; background: transparent; }
-                    Button { visible: dialed != ""; width: 58px; text: "Sil"; clicked => { dialed = ""; suggested-name = ""; suggested-phone = ""; } }
+                    Rectangle {
+                        width: 64px;
+                        background: #0aaa68;
+                        border-radius: 32px;
+                        Text { text: "☎"; color: white; font-size: 30px; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea {
+                            clicked => {
+                                contact-name = suggested-name == "" ? (dialed == "" ? "Asya AI" : "Bilinmeyen Numara") : suggested-name;
+                                calling-phone = suggested-phone == "" ? dialed : suggested-phone;
+                                call-state = "ringing";
+                                in-call = true;
+                                status = "Araniyor...";
+                                root.start-call(dialed);
+                            }
+                        }
+                    }
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        background: transparent;
+                        Text { text: dialed == "" ? "" : "⌫"; color: #777781; font-size: 27px; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea { enabled: dialed != ""; clicked => { dialed = ""; suggested-name = ""; suggested-phone = ""; } }
+                    }
                 }
             }
-            if !in-call && phone-view == "contacts": VerticalLayout {
+            if call-state == "idle" && phone-view == "contacts": VerticalLayout {
                 spacing: 5px;
                 Text { text: "Kisiler"; font-size: 22px; font-weight: 700; color: #151519; height: 32px; }
                 GridLayout {
@@ -167,43 +204,62 @@ export component TabletShell inherits Window {
                 Button { row: 2; col: 1; text: "Kerem AI"; clicked => { dialed = "+905376066060"; root.start-call(dialed); } }
                 }
             }
-            if !in-call && phone-view == "recent": VerticalLayout {
+            if call-state == "idle" && phone-view == "recent": VerticalLayout {
                 spacing: 8px;
                 Text { text: "Son aramalar"; font-size: 22px; font-weight: 700; color: #151519; height: 32px; }
                 Button { text: "Asya AI    Bugun"; clicked => { dialed = ""; root.start-call(""); } }
                 Button { text: "Mira AI    Dun"; clicked => { dialed = "+905343033030"; root.start-call(dialed); } }
                 Button { text: "Deniz AI    Dun"; clicked => { dialed = "+905332022020"; root.start-call(dialed); } }
             }
-            if in-call: Rectangle {
-                background: #e8f6ef;
-                border-radius: 8px;
-                height: 86px;
+            if call-state != "idle": Rectangle {
+                vertical-stretch: 1;
+                background: #171522;
                 VerticalLayout {
-                    padding: 10px;
-                    Text { text: contact-name; font-size: 18px; font-weight: 700; color: #125f3d; }
-                    Text { text: last-reply; font-size: 14px; color: #27332d; wrap: word-wrap; }
+                    padding: 18px;
+                    spacing: 10px;
+                    Text { text: call-state == "ringing" ? "Araniyor..." : listening ? "Dinleniyor..." : "Gorusmede"; font-size: 16px; color: #e8e6ec; horizontal-alignment: center; }
+                    Text { text: contact-name; font-size: 34px; font-weight: 700; color: white; horizontal-alignment: center; }
+                    Text { text: calling-phone == "" ? "Cep" : "Cep  " + calling-phone; font-size: 15px; color: #eeeaf1; horizontal-alignment: center; }
+                    Rectangle { vertical-stretch: 1; background: transparent; }
+                    if call-state == "connected": Rectangle {
+                        height: 82px;
+                        background: #ffffff18;
+                        border-radius: 8px;
+                        Text { text: last-reply; font-size: 14px; color: white; wrap: word-wrap; horizontal-alignment: center; vertical-alignment: center; }
+                    }
+                    Rectangle {
+                        height: 236px;
+                        background: #eae7e8dd;
+                        border-radius: 8px;
+                        VerticalLayout {
+                            padding: 16px;
+                            spacing: 8px;
+                            GridLayout {
+                                spacing: 4px;
+                                CallOption { row: 0; col: 0; icon: "+"; label: "Arama ekle"; }
+                                CallOption { row: 0; col: 1; icon: "▣"; label: "Video arama"; }
+                                CallOption { row: 0; col: 2; icon: "ᛒ"; label: "Bluetooth"; }
+                                CallOption { row: 1; col: 0; icon: "◖))"; label: "Hoparlor"; }
+                                CallOption { row: 1; col: 1; icon: "♩"; label: listening ? "Dinleniyor" : "Sessiz"; }
+                                CallOption { row: 1; col: 2; icon: "⠿"; label: "Tus takimi"; clicked => { call-state = "idle"; in-call = false; } }
+                            }
+                            HorizontalLayout {
+                                Rectangle { horizontal-stretch: 1; background: transparent; }
+                                Rectangle {
+                                    width: 66px;
+                                    height: 66px;
+                                    border-radius: 33px;
+                                    background: #ea3d39;
+                                    Text { text: "☎"; transform-rotation: 135deg; color: white; font-size: 29px; horizontal-alignment: center; vertical-alignment: center; }
+                                    TouchArea { clicked => { root.end-call(); } }
+                                }
+                                Rectangle { horizontal-stretch: 1; background: transparent; }
+                            }
+                        }
+                    }
                 }
             }
-            if in-call: HorizontalLayout {
-                spacing: 6px;
-                Button { text: "Nasilsin?"; clicked => { root.send-message("Nasilsin?"); } }
-                Button { text: "Ne yapalim?"; clicked => { root.send-message("Bugun ne yapalim?"); } }
-                Button { text: "Oyun"; clicked => { root.send-message("Oyun oynayalim"); } }
-            }
-            if in-call: HorizontalLayout {
-                spacing: 6px;
-                Button { text: listening ? "Dinleniyor..." : "Otomatik dinleme"; enabled: false; }
-                Button { text: "Bilmece"; clicked => { root.send-message("Bilmece sor"); } }
-                Button { text: "Hikaye"; clicked => { root.send-message("Kisa hikaye anlat"); } }
-                Button { text: "Tesekkur"; clicked => { root.send-message("Tesekkur ederim"); } }
-            }
-            HorizontalLayout {
-                visible: in-call;
-                height: 42px;
-                spacing: 10px;
-                if in-call: Button { text: "Kapat"; clicked => { root.end-call(); } }
-            }
-            if !in-call: HorizontalLayout {
+            if call-state == "idle": HorizontalLayout {
                 height: 48px;
                 spacing: 4px;
                 Button { text: "Klavye"; clicked => { phone-view = "keypad"; } }

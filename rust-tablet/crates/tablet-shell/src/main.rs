@@ -145,6 +145,7 @@ fn main() -> Result<(), slint::PlatformError> {
         if let Some(ui) = weak.upgrade() {
             let (name, phone) = contact_suggestion(ui.get_dialed().as_str());
             ui.set_suggested_name(name.into());
+            ui.set_suggested_initial(name.chars().next().unwrap_or('A').to_string().into());
             ui.set_suggested_phone(phone.into());
         }
     });
@@ -198,6 +199,30 @@ fn main() -> Result<(), slint::PlatformError> {
     let weak = ui.as_weak();
     let call_slot = active_call.clone();
     ui.on_start_call(move |number| {
+        if let Some(ui) = weak.upgrade() {
+            let (suggested_name, suggested_phone) = contact_suggestion(number.as_str());
+            ui.set_contact_name(
+                if suggested_name.is_empty() {
+                    if number.is_empty() {
+                        "Asya AI"
+                    } else {
+                        "Bilinmeyen Numara"
+                    }
+                } else {
+                    suggested_name
+                }
+                .into(),
+            );
+            ui.set_calling_phone(if suggested_phone.is_empty() {
+                number.clone()
+            } else {
+                suggested_phone.into()
+            });
+            ui.set_call_state("ringing".into());
+            ui.set_in_call(true);
+            ui.set_listening(false);
+            ui.set_status("Araniyor...".into());
+        }
         let weak = weak.clone();
         let call_slot = call_slot.clone();
         std::thread::spawn(move || {
@@ -231,10 +256,11 @@ fn main() -> Result<(), slint::PlatformError> {
             let weak_ringing = weak.clone();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(ui) = weak_ringing.upgrade() {
+                    ui.set_contact_name(ringing_name.clone().into());
                     ui.set_status(format!("{ringing_name} telefonu caliyor...").into());
                 }
             });
-            std::thread::sleep(std::time::Duration::from_millis(4200));
+            std::thread::sleep(std::time::Duration::from_millis(6500));
             stop_ringback();
             play_phone_sound("connect", false);
             std::thread::sleep(std::time::Duration::from_millis(250));
@@ -253,6 +279,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     ui.set_status("Seni dinliyorum...".into());
                     ui.set_contact_name(greeting_name.into());
                     ui.set_last_reply(greeting.into());
+                    ui.set_call_state("connected".into());
                     ui.set_in_call(true);
                     ui.set_listening(true);
                 }
@@ -384,6 +411,7 @@ fn main() -> Result<(), slint::PlatformError> {
         play_phone_sound("end", false);
         if let Some(ui) = weak.upgrade() {
             ui.set_in_call(false);
+            ui.set_call_state("idle".into());
             ui.set_listening(false);
             ui.set_contact_name("".into());
             ui.set_last_reply("".into());
