@@ -109,13 +109,6 @@ export component TabletShell inherits Window {
             height: 44px;
             Text { text: screen == "home" ? tablet-title : screen == "phone" ? "Telefon" : screen == "settings" ? "Ses ayarlari" : "Son uygulamalar"; font-size: 28px; font-weight: 700; color: #111115; }
             Text { horizontal-stretch: 1; text: status; horizontal-alignment: right; vertical-alignment: center; color: #676772; font-size: 13px; }
-            Rectangle {
-                width: 44px;
-                height: 44px;
-                background: transparent;
-                TouchArea { clicked => { root.request-parent-exit(); } }
-                Text { text: "⏻"; font-size: 25px; color: #55555e; horizontal-alignment: center; vertical-alignment: center; }
-            }
         }
 
         if screen == "home": VerticalLayout {
@@ -393,6 +386,17 @@ export component TabletShell inherits Window {
                 }
             }
         }
+    }
+
+    if !parent-exit-open: Rectangle {
+        x: parent.width - 58px;
+        y: 18px;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background: #ffffffcc;
+        TouchArea { clicked => { root.request-parent-exit(); } }
+        Text { text: "⏻"; font-size: 25px; color: #55555e; horizontal-alignment: center; vertical-alignment: center; }
     }
 
     if parent-exit-open: Rectangle {
