@@ -14,7 +14,10 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio::{process::Command, sync::RwLock};
-use tower_http::services::ServeDir;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    services::ServeDir,
+};
 use uuid::Uuid;
 
 #[derive(Clone, Serialize)]
@@ -215,6 +218,12 @@ async fn main() {
         .nest_service(
             "/admin",
             ServeDir::new(admin_dir).append_index_html_on_directories(true),
+        )
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any),
         )
         .with_state(state);
 

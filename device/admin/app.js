@@ -1,8 +1,13 @@
 const $=s=>document.querySelector(s), appsEl=$("#apps"), tpl=$("#app-template");
 let config={title:"Pi Tablet",background:"#f7f7fa",apps:[]};
+const defaultBase=location.protocol==="file:"?"http://192.168.1.22:8090":location.origin;
+$("#pi-address").value=localStorage.getItem("pi-tablet-address")||defaultBase;
+const api=path=>$("#pi-address").value.replace(/\/+$/,"")+path;
 const render=()=>{ $("#title").value=config.title;$("#background").value=config.background;appsEl.innerHTML="";config.apps.forEach((app,i)=>{const node=tpl.content.cloneNode(true),article=node.querySelector("article");article.querySelectorAll("[data-key]").forEach(el=>{el.value=app[el.dataset.key];el.oninput=()=>{app[el.dataset.key]=el.value;preview()}});article.querySelectorAll("[data-move]").forEach(b=>b.onclick=()=>{const j=i+Number(b.dataset.move);if(j>=0&&j<config.apps.length){[config.apps[i],config.apps[j]]=[config.apps[j],config.apps[i]];render()}});article.querySelector("[data-remove]").onclick=()=>{config.apps.splice(i,1);render()};appsEl.append(node)});preview()};
 const preview=()=>{config.title=$("#title").value;config.background=$("#background").value;$("#preview-title").textContent=config.title;$(".tablet-screen").style.background=config.background;$("#preview-apps").innerHTML=config.apps.map(a=>`<div class="tile" style="background:${a.color}"><strong>${a.title}</strong><small>${a.subtitle}</small></div>`).join("")};
 $("#title").oninput=preview;$("#background").oninput=preview;
 $("#add").onclick=()=>{config.apps.push({title:"Yeni uygulama",subtitle:"Açıklama",color:"#dce8ef",action:"settings"});render()};
-$("#save").onclick=async()=>{preview();$("#state").textContent="Kaydediliyor";const r=await fetch("/api/config",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(config)});$("#state").textContent=r.ok?"Uygulandı":"Hata"};
-fetch("/api/config").then(r=>r.json()).then(v=>{config=v;$("#state").textContent="Bağlı";render()}).catch(()=>$("#state").textContent="Bağlantı yok");
+const connect=async()=>{localStorage.setItem("pi-tablet-address",$("#pi-address").value);$("#state").textContent="Bağlanıyor";try{const r=await fetch(api("/api/config"));if(!r.ok)throw new Error();config=await r.json();$("#state").textContent="Bağlı";render()}catch{$("#state").textContent="Bağlantı yok"}};
+$("#connect").onclick=connect;
+$("#save").onclick=async()=>{preview();$("#state").textContent="Kaydediliyor";try{const r=await fetch(api("/api/config"),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(config)});$("#state").textContent=r.ok?"Uygulandı":"Hata"}catch{$("#state").textContent="Bağlantı yok"}};
+connect();

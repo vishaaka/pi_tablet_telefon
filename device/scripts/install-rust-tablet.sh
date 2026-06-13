@@ -49,11 +49,26 @@ sudo install -m 0755 target/release/pi-tablet-shell "$INSTALL_DIR/bin/pi-tablet-
 sudo install -m 0755 target/release/pi-tablet-backend-rs "$INSTALL_DIR/bin/pi-tablet-backend-rs"
 sudo install -m 0755 "$REPO_DIR/device/scripts/launch-youtube-kids.sh" "$INSTALL_DIR/bin/launch-youtube-kids"
 sudo install -m 0755 "$REPO_DIR/device/scripts/listen-turkish.sh" "$INSTALL_DIR/bin/listen-turkish"
+sudo install -m 0755 "$REPO_DIR/device/scripts/run-rust-tablet-shell.sh" "$INSTALL_DIR/bin/run-rust-tablet-shell"
+sudo install -m 0755 "$REPO_DIR/device/scripts/start-rust-tablet-shell.sh" "$INSTALL_DIR/bin/start-rust-tablet-shell"
 sudo rm -rf "$INSTALL_DIR/youtube-kids-touch"
 sudo cp -R "$REPO_DIR/device/youtube-kids-touch" "$INSTALL_DIR/youtube-kids-touch"
 sudo cp -R "$REPO_DIR/device/admin/." "$INSTALL_DIR/admin/"
 bash "$REPO_DIR/device/scripts/generate-phone-sounds.sh" "$INSTALL_DIR/sounds"
 sudo chown -R "$USER_NAME:$USER_NAME" /var/lib/pi-tablet-rust
+
+mkdir -p "$USER_HOME/Desktop"
+cat >"$USER_HOME/Desktop/Pi-Tablet-Kiosk.desktop" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=Pi Tablet Kiosk
+Comment=Pi Tablet kiosk uygulamasini baslat
+Exec=$INSTALL_DIR/bin/start-rust-tablet-shell
+Icon=applications-system
+Terminal=false
+Categories=Utility;
+DESKTOP
+chmod +x "$USER_HOME/Desktop/Pi-Tablet-Kiosk.desktop"
 
 sudo tee "$SERVICE_FILE" >/dev/null <<SERVICE
 [Unit]
