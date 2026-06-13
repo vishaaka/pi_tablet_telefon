@@ -53,10 +53,10 @@ fn play_phone_sound(name: &str, looping: bool) {
         "-loglevel",
         "error",
         "-volume",
-        "85",
+        "100",
     ]);
     if looping {
-        command.args(["-stream_loop", "-1"]);
+        command.args(["-loop", "0"]);
     }
     let _ = command.arg(path).spawn();
 }
