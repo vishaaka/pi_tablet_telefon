@@ -1,5 +1,6 @@
 use slint::{Color, ModelRc, SharedString, VecModel};
 use std::{
+    path::PathBuf,
     process::Command,
     sync::{Arc, Mutex},
     time::{SystemTime, UNIX_EPOCH},
@@ -9,6 +10,29 @@ slint::include_modules!();
 
 fn launch(program: &str, args: &[&str]) {
     let _ = Command::new(program).args(args).spawn();
+}
+
+fn launch_desktop(desktop_id: &str) {
+    if desktop_id.is_empty()
+        || !desktop_id
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || ".-_".contains(character))
+    {
+        return;
+    }
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/vish".into());
+    let candidates = [
+        PathBuf::from(home).join(".local/share/applications"),
+        PathBuf::from("/usr/local/share/applications"),
+        PathBuf::from("/usr/share/applications"),
+    ];
+    if let Some(path) = candidates
+        .into_iter()
+        .map(|directory| directory.join(format!("{desktop_id}.desktop")))
+        .find(|path| path.is_file())
+    {
+        let _ = Command::new("gio").arg("launch").arg(path).spawn();
+    }
 }
 
 fn set_system_volume(percent: i32) {
@@ -219,7 +243,7 @@ fn main() -> Result<(), slint::PlatformError> {
             "tuxpaint" => launch("tuxpaint", &["--fullscreen", "--nosysfonts"]),
             _ if app.starts_with("desktop:") => {
                 if let Some(desktop_id) = app.strip_prefix("desktop:") {
-                    launch("gtk-launch", &[desktop_id]);
+                    launch_desktop(desktop_id);
                 }
             }
             _ => {}
