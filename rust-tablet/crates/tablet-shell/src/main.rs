@@ -67,6 +67,12 @@ fn stop_ringback() {
         .status();
 }
 
+fn stop_dtmf() {
+    let _ = Command::new("pkill")
+        .args(["-f", "/opt/pi-tablet-rust/sounds/dtmf-"])
+        .status();
+}
+
 fn post_json(url: &str, body: &str) -> Option<serde_json::Value> {
     let output = Command::new("curl")
         .args([
@@ -141,6 +147,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let weak = ui.as_weak();
     ui.on_phone_tone(move |tone| {
+        stop_dtmf();
         play_phone_sound(&format!("dtmf-{tone}"), false);
         if let Some(ui) = weak.upgrade() {
             let (name, phone) = contact_suggestion(ui.get_dialed().as_str());
