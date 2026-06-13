@@ -11,8 +11,8 @@ license = "Apache-2.0"
 version = "0.1.0"
 
 [profile.release]
-codegen-units = 1
-lto = "thin"
+codegen-units = 8
+lto = false
 opt-level = "s"
 panic = "abort"
 strip = true
