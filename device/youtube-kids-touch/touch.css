@@ -1,3 +1,7 @@
+:root {
+  --pi-tablet-navigation-height: 48px;
+}
+
 html,
 body {
   overscroll-behavior: none !important;
@@ -6,7 +10,7 @@ body {
 }
 
 body.pi-tablet-top {
-  padding-bottom: 48px !important;
+  padding-bottom: var(--pi-tablet-navigation-height) !important;
 }
 
 body * {
@@ -31,7 +35,13 @@ body.pi-video-playing #header {
 }
 
 body.pi-video-playing video {
-  max-height: calc(100vh - 48px) !important;
+  max-height: calc(100vh - var(--pi-tablet-navigation-height)) !important;
+}
+
+body.pi-video-playing [data-pi-video-player="true"] {
+  box-sizing: border-box !important;
+  height: calc(100vh - var(--pi-tablet-navigation-height)) !important;
+  max-height: calc(100vh - var(--pi-tablet-navigation-height)) !important;
 }
 
 #pi-tablet-navigation {
@@ -40,7 +50,7 @@ body.pi-video-playing video {
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  height: 48px !important;
+  height: var(--pi-tablet-navigation-height) !important;
   display: grid !important;
   grid-template-columns: repeat(3, 1fr) !important;
   background: rgba(245, 245, 248, 0.98) !important;
@@ -51,7 +61,7 @@ body.pi-video-playing video {
 #pi-tablet-gesture-layer {
   position: fixed !important;
   z-index: 2147483646 !important;
-  inset: 0 0 48px 0 !important;
+  inset: 0 0 var(--pi-tablet-navigation-height) 0 !important;
   background: transparent !important;
   cursor: default !important;
   touch-action: none !important;

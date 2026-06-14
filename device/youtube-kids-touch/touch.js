@@ -7,6 +7,7 @@
   let suppressClick = false;
   let mouseActive = false;
   let startElement = null;
+  let markedVideoPlayers = [];
 
   const largestScroller = (axis) => {
     const documentScroller = document.scrollingElement || document.documentElement;
@@ -224,11 +225,47 @@
     }
   }, { capture: true });
 
+  const parentAcrossRoots = (element) => {
+    if (element?.parentElement) return element.parentElement;
+    const root = element?.getRootNode?.();
+    return root instanceof ShadowRoot ? root.host : null;
+  };
+
+  const videosIn = (root, found = []) => {
+    for (const element of root.querySelectorAll?.("*") || []) {
+      if (element instanceof HTMLVideoElement) found.push(element);
+      if (element.shadowRoot) videosIn(element.shadowRoot, found);
+    }
+    return found;
+  };
+
+  const markVideoPlayer = (video) => {
+    let element = parentAcrossRoots(video);
+    let player = null;
+
+    while (element && element !== document.body && element !== document.documentElement) {
+      const rect = element.getBoundingClientRect();
+      if (rect.width >= innerWidth * 0.8 && rect.height >= innerHeight * 0.55) {
+        player = element;
+      }
+      element = parentAcrossRoots(element);
+    }
+
+    if (player) {
+      player.setAttribute("data-pi-video-player", "true");
+      markedVideoPlayers.push(player);
+    }
+  };
+
   const updateVideoMode = () => {
     if (window === window.top) document.body?.classList.add("pi-tablet-top");
     addGestureLayer();
     addNavigation();
-    const playing = [...document.querySelectorAll("video")].some((video) => {
+    markedVideoPlayers.forEach((element) => {
+      element.removeAttribute("data-pi-video-player");
+    });
+    markedVideoPlayers = [];
+    const visibleVideos = videosIn(document).filter((video) => {
       const rect = video.getBoundingClientRect();
       const style = getComputedStyle(video);
       return (
@@ -241,6 +278,8 @@
         Number(style.opacity) > 0
       );
     });
+    visibleVideos.forEach(markVideoPlayer);
+    const playing = visibleVideos.length > 0;
     document.body?.classList.toggle("pi-video-playing", playing);
   };
 
